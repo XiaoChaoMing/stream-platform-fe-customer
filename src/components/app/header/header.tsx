@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { useStore } from "@/store/useStore";
 import LogoBlack from "@/assets/logo-black.png";
 import LogoWhite from "@/assets/logo-white.png";
+import { SocketStatus } from "@/components/base/SocketStatus";
+import { Link } from "react-router-dom";
+import { PATH } from "@/constants/path";
 import {
   Crown,
   EllipsisVertical,
@@ -21,11 +24,13 @@ const Header = () => {
     <div className="fixed z-99 mb-1 flex h-fit w-full items-center justify-between bg-[var(--primary-foreground)] px-4 py-2.5">
       <div className="flex items-center justify-center gap-3">
         <div className="w-32">
-          <img
-            src={theme === "light" ? LogoBlack : LogoWhite}
-            alt="logo"
-            className="h-full w-full object-contain"
-          />
+          <Link to={PATH.HOME}>
+            <img
+              src={theme === "light" ? LogoBlack : LogoWhite}
+              alt="logo"
+              className="h-full w-full object-contain"
+            />
+          </Link>
         </div>
         <a
           href="#"
@@ -39,6 +44,7 @@ const Header = () => {
         >
           Browse
         </a>
+
         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md">
           <EllipsisVertical />
         </Button>
@@ -50,6 +56,9 @@ const Header = () => {
         </Button>
       </div>
       <div className="flex items-center justify-center gap-3">
+        <div className="relative">
+          <SocketStatus />
+        </div>
         <Button
           variant="ghost"
           size="icon"

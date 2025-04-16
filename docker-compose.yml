@@ -1,9 +1,26 @@
 version: "3.8"
 
 services:
+  ui:
+    # local build
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+
+    # docker hub build
+    container_name: streaming-platform-ui
+    image: minhnguyen1489/streaming-platform:ui
+    ports:
+      - "8084:8084"
+    restart: unless-stopped
+    depends_on:
+      - minio
+    environment:
+      - NODE_ENV=production
+
   minio:
     image: minio/minio
-    container_name: minio
+    container_name: streaming-platform-minio
     ports:
       - "9000:9000" # API port
       - "9001:9001" # Console port

@@ -4,12 +4,14 @@ import { RouterProvider } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./config/reactQueryConfig";
 import { router } from "./router/router";
-
+import { SocketProvider } from "./components/app/socketContext/SocketContext";
 function App() {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <SocketProvider>
+          <RouterProvider router={router} />
+        </SocketProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );

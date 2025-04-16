@@ -15,7 +15,7 @@ interface CarouselProps {
 
 const Carousel = ({ items }: CarouselProps) => {
   return (
-    <div className="w-full">
+    <div className="w-full" key={items[0].id}>
       <Swiper
         effect={"coverflow"}
         grabCursor={true}
@@ -32,7 +32,7 @@ const Carousel = ({ items }: CarouselProps) => {
       >
         {items.map((item: any) => {
           return (
-            <SwiperSlide>
+            <SwiperSlide key={item.id}>
               <div className="flex bg-amber-200">
                 <img
                   height={400}

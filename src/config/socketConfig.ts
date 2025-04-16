@@ -1,11 +1,14 @@
 import { io, Socket } from "socket.io-client";
-import { useStore } from "@/store";
 
 class SocketService {
   private socket: Socket | null = null;
+  private connectionStatus: "connecting" | "connected" | "disconnected" =
+    "disconnected";
 
   connect() {
     if (this.socket) return;
+
+    this.connectionStatus = "connecting";
 
     this.socket = io(
       import.meta.env.VITE_SOCKET_URL || "http://localhost:3000",
@@ -26,6 +29,7 @@ class SocketService {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
+      this.connectionStatus = "disconnected";
     }
   }
 
@@ -34,10 +38,17 @@ class SocketService {
 
     this.socket.on("connect", () => {
       console.log("Socket connected");
+      this.connectionStatus = "connected";
     });
 
     this.socket.on("disconnect", () => {
       console.log("Socket disconnected");
+      this.connectionStatus = "disconnected";
+    });
+
+    this.socket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error);
+      this.connectionStatus = "disconnected";
     });
 
     this.socket.on("error", (error) => {
@@ -53,6 +64,27 @@ class SocketService {
       // Handle messages
       console.log("New message:", data);
     });
+  }
+
+  // Check if socket exists and is connected
+  isConnected(): boolean {
+    return this.socket?.connected || false;
+  }
+
+  // Get the socket ID if connected
+  getSocketId(): string | null {
+    return this.socket?.id || null;
+  }
+
+  // Get detailed connection status
+  getConnectionStatus(): "connecting" | "connected" | "disconnected" {
+    return this.connectionStatus;
+  }
+
+  // Force reconnection attempt
+  reconnect(): void {
+    this.disconnect();
+    this.connect();
   }
 
   // Emit events

@@ -18,30 +18,43 @@ import { Separator } from "@/components/ui/separator";
 import { Link } from "react-router-dom";
 import { PATH } from "@/constants/path";
 
-const loginSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters")
-});
+const registerSchema = z
+  .object({
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(6, "Password must be at least 6 characters")
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"]
+  });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type RegisterFormValues = z.infer<typeof registerSchema>;
 
-const LoginPage = () => {
+const RegisterPage = () => {
   const { setLoading, setError } = useStore();
-  const { login, loginWithGoogle, isLoggingIn } = useAuth();
+  const { register, loginWithGoogle, isRegistering } = useAuth();
 
-  // Default credentials: john/123456
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
-      password: ""
+      email: "",
+      password: "",
+      confirmPassword: ""
     }
   });
 
-  const onSubmit = (data: LoginFormValues) => {
+  const onSubmit = (data: RegisterFormValues) => {
     setLoading(true);
     setError(null);
-    login(data);
+    register({
+      username: data.username,
+      email: data.email,
+      password: data.password,
+      role_id: 1 
+    });
   };
 
   const handleGoogleLogin = () => {
@@ -50,13 +63,13 @@ const LoginPage = () => {
 
   return (
     <div className="container flex h-screen w-screen flex-col items-center justify-center">
-      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[400px]">
         <div className="flex flex-col space-y-2 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Welcome back
+            Create an account
           </h1>
           <p className="text-muted-foreground text-sm">
-            Enter your credentials to sign in
+            Enter your details to register
           </p>
         </div>
         <Form {...form}>
@@ -71,7 +84,25 @@ const LoginPage = () => {
                     <Input
                       placeholder="Enter your username"
                       {...field}
-                      disabled={isLoggingIn}
+                      disabled={isRegistering}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="name@example.com"
+                      type="email"
+                      {...field}
+                      disabled={isRegistering}
                     />
                   </FormControl>
                   <FormMessage />
@@ -86,24 +117,42 @@ const LoginPage = () => {
                   <FormLabel>Password</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter your password"
+                      placeholder="Create a password"
                       type="password"
                       {...field}
-                      disabled={isLoggingIn}
+                      disabled={isRegistering}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={isLoggingIn}>
-              {isLoggingIn ? (
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Confirm your password"
+                      type="password"
+                      {...field}
+                      disabled={isRegistering}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className="w-full" disabled={isRegistering}>
+              {isRegistering ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  Creating account...
                 </>
               ) : (
-                "Sign in"
+                "Register"
               )}
             </Button>
           </form>
@@ -148,16 +197,16 @@ const LoginPage = () => {
               d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
             />
           </svg>
-          Sign in with Google
+          Sign up with Google
         </Button>
 
         <p className="text-muted-foreground px-8 text-center text-sm">
-          Don't have an account?{" "}
+          Already have an account?{" "}
           <Link
-            to={PATH.REGISTER}
+            to={PATH.LOGIN}
             className="hover:text-primary underline underline-offset-4"
           >
-            Sign up
+            Sign in
           </Link>
         </p>
       </div>
@@ -165,4 +214,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default RegisterPage;
