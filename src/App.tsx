@@ -4,7 +4,7 @@ import { RouterProvider } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./config/reactQueryConfig";
 import { router } from "./router/router";
-import { SocketProvider } from "./components/app/socketContext/SocketContext";
+import { SocketProvider } from "./components/base/socketContext/SocketContext";
 function App() {
   return (
     <ThemeProvider>

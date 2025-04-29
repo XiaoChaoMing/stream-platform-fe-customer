@@ -1,42 +1,22 @@
-version: "3.8"
+
 
 services:
   ui:
     # local build
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
+    build:
+      context: .
+      dockerfile: Dockerfile
 
     # docker hub build
     container_name: streaming-platform-ui
-    image: minhnguyen1489/streaming-platform:ui
+    # image: minhnguyen1489/streaming-platform:ui
     ports:
       - "8084:8084"
     restart: unless-stopped
-    depends_on:
-      - minio
+    # depends_on:
+    #   - minio
     environment:
       - NODE_ENV=production
-
-  minio:
-    image: minio/minio
-    container_name: streaming-platform-minio
-    ports:
-      - "9000:9000" # API port
-      - "9001:9001" # Console port
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-      MINIO_ADDRESSES: ":9000"
-      MINIO_CONSOLE_ADDRESS: ":9001"
-    volumes:
-      - minio_data:/data
-    command: server /data --console-address ":9001"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
 
 volumes:
   minio_data:

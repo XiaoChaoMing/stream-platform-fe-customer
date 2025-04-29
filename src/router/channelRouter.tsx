@@ -8,10 +8,6 @@ const Home = lazy(() => import("@/pages/chanel/pages/Home"));
 const About = lazy(() => import("@/pages/chanel/pages/About"));
 const Schedule = lazy(() => import("@/pages/chanel/pages/Schedule"));
 const Video = lazy(() => import("@/pages/chanel/pages/Video"));
-const ChannelPage = lazy(
-  () => import("@/pages/chanel/components/ChannelDetail")
-);
-
 const NotFound = lazy(() => import("@/pages/chanel/pages/NotFound"));
 
 export const channelRoutes = [
@@ -27,23 +23,10 @@ export const channelRoutes = [
         ),
         children: [
           {
-            path: ":channelId",
-            element: (
-              <Suspense fallback={<Loading />}>
-                <ChannelPage />
-              </Suspense>
-            ),
+            path: ":username",
             children: [
               {
                 path: "",
-                element: (
-                  <Suspense fallback={<Loading />}>
-                    <Home />
-                  </Suspense>
-                )
-              },
-              {
-                path: "home",
                 element: (
                   <Suspense fallback={<Loading />}>
                     <Home />

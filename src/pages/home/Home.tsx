@@ -227,25 +227,57 @@ const Home = () => {
 
   return (
     <MainLayout>
-      <Carosel items={carouselItems} />
-      {/* list stream cards */}
-      <div className="mt-4 grid grid-cols-5 gap-4">
-        {mockStreamCards.map((c) => {
-          return <StreamCard key={c.streamName} {...c} />;
-        })}
-      </div>
-      {/* category cards */}
-      <div className="mt-4 grid grid-cols-10 gap-4">
-        <CategoryCard />
-        <CategoryCard />
-        <CategoryCard />
-        <CategoryCard />
-        <CategoryCard />
-        <CategoryCard />
-        <CategoryCard />
-        <CategoryCard />
-        <CategoryCard />
-        <CategoryCard />
+      <div className="relative h-full w-full overflow-y-scroll">
+        <div className="absolute w-full rounded-md bg-[var(--background)] p-2 sm:p-4">
+          <Carosel items={carouselItems} />
+          
+          {/* Featured streams section */}
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold mb-3">Featured Streams</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+              {mockStreamCards.slice(0, 5).map((c) => (
+                <StreamCard key={c.streamName} {...c} />
+              ))}
+            </div>
+          </div>
+          
+          {/* Live Now section with small cards */}
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold mb-3">Live Now</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {mockStreamCards.filter(c => c.state).slice(0, 6).map((c) => (
+                <StreamCard key={`live-${c.streamName}`} {...c} variant="sm" />
+              ))}
+            </div>
+          </div>
+          
+          {/* Category section */}
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold mb-3">Browse Categories</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 xl:grid-cols-10 gap-3 sm:gap-4">
+              <CategoryCard />
+              <CategoryCard />
+              <CategoryCard />
+              <CategoryCard />
+              <CategoryCard />
+              <CategoryCard />
+              <CategoryCard />
+              <CategoryCard />
+              <CategoryCard />
+              <CategoryCard />
+            </div>
+          </div>
+          
+          {/* Recommended channels */}
+          <div className="mt-8 mb-10">
+            <h2 className="text-xl font-semibold mb-3">Recommended Channels</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+              {mockStreamCards.slice(5, 10).map((c) => (
+                <StreamCard key={`rec-${c.streamName}`} {...c} />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </MainLayout>
   );

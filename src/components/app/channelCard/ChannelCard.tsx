@@ -29,7 +29,7 @@ const ChannelCard = ({
   const navigate = useNavigate();
 
   const handleChannelClick = () => {
-    navigate(`/channel/${channelId}`);
+    navigate(`/channel/${username}`);
   };
 
   return (

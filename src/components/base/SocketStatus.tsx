@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSocket } from "@/components/app/socketContext/SocketContext";
+import { useSocket } from "@/components/base/socketContext/SocketContext";
 import { Button } from "@/components/ui/button";
 import { WifiOff, Wifi } from "lucide-react";
 import {

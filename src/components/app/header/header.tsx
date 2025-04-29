@@ -24,26 +24,27 @@ const Header = () => {
     <div className="fixed z-99 mb-1 flex h-fit w-full items-center justify-between bg-[var(--primary-foreground)] px-4 py-2.5">
       <div className="flex items-center justify-center gap-3">
         <div className="w-32">
-          <Link to={PATH.HOME}>
+          <Link to={PATH.HOME} >
             <img
+              style={{ "--c": theme === "light" ? "#000" : "#fff","--d": "5px" } as React.CSSProperties}
               src={theme === "light" ? LogoBlack : LogoWhite}
               alt="logo"
-              className="h-full w-full object-contain"
+              className="h-full w-full object-contain hover-2"
             />
           </Link>
         </div>
-        <a
-          href="#"
+        <Link
+          to={PATH.FOLLOWING}
           className="text-md ml-4 font-medium transition-all duration-300 hover:text-[var(--color-chart-4)]"
         >
           Following
-        </a>
-        <a
-          href="#"
+        </Link>
+        <Link
+          to={PATH.HOME}
           className="text-md ml-4 font-medium transition-all duration-300 hover:text-[var(--color-chart-4)]"
         >
           Browse
-        </a>
+        </Link>
 
         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md">
           <EllipsisVertical />

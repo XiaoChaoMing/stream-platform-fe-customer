@@ -8,46 +8,47 @@ import {
   TooltipTrigger
 } from "@/components/ui/tooltip";
 import ChannelCard from "../channelCard/ChannelCard";
+import { useQuery } from "@tanstack/react-query";
+import { channelService } from "@/services/app/channel";
 
+// Use the channel interface that matches what we need for the sidebar
 interface Channel {
-  channelId: string;
+  id: string;
   username: string;
-  imageUrl: string;
-  detail: string;
+  profileImage: string;
+  description: string;
   isLive: boolean;
-  viewCount: number;
+  category: string;
 }
 
-// Mock data for demonstration
-export const mockChannels: Channel[] = [
-  {
-    channelId: "tech-stream",
-    username: "TechStream",
-    imageUrl: "https://github.com/shadcn.png",
-    detail: "Tech & Programming",
-    isLive: true,
-    viewCount: 11900
-  },
-  {
-    channelId: "gaming-pro",
-    username: "GamingPro",
-    imageUrl: "https://github.com/shadcn.png",
-    detail: "Gaming & Entertainment",
-    isLive: true,
-    viewCount: 8500
-  },
-  {
-    channelId: "artistic-flow",
-    username: "ArtisticFlow",
-    imageUrl: "https://github.com/shadcn.png",
-    detail: "Art & Design",
-    isLive: false,
-    viewCount: 0
-  }
-];
+// Create a new service function to get recommended channels
+const getRecommendedChannels = async (): Promise<Channel[]> => {
+  // For now, we'll use our mock data
+  // In a real implementation, this would be a separate API endpoint
+  const mockUsernames = ['summit1g', 'ninja'];
+  const fetchedChannels = await Promise.all(
+    mockUsernames.map(username => channelService.getChannelByUsername(username))
+  );
+  
+  return fetchedChannels.map(channel => ({
+    id: channel.id,
+    username: channel.username,
+    profileImage: channel.profileImage,
+    description: channel.description,
+    isLive: channel.isLive,
+    category: channel.category
+  }));
+};
 
 const SideBar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Fetch recommended channels using React Query
+  const { data: recommendedChannels, isLoading } = useQuery({
+    queryKey: ['recommendedChannels'],
+    queryFn: getRecommendedChannels,
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  });
 
   return (
     <div
@@ -79,18 +80,27 @@ const SideBar = () => {
         </TooltipProvider>
       </div>
       <div className="flex flex-col gap-1">
-        {mockChannels.map((channel) => (
-          <ChannelCard
-            key={channel.channelId}
-            isCollapsed={isCollapsed}
-            {...channel}
-          />
-        ))}
+        {isLoading ? (
+          <div className="text-sm text-gray-400 p-2">Loading channels...</div>
+        ) : recommendedChannels && recommendedChannels.length > 0 ? (
+          recommendedChannels.map((channel) => (
+            <ChannelCard
+              key={channel.id}
+              channelId={channel.username} // Using username instead of id for routing
+              username={channel.username}
+              imageUrl={channel.profileImage}
+              detail={channel.category}
+              isLive={channel.isLive}
+              viewCount={Math.floor(Math.random() * 15000)}
+              isCollapsed={isCollapsed}
+            />
+          ))
+        ) : (
+          <div className="text-sm text-gray-400 p-2">No recommended channels</div>
+        )}
       </div>
     </div>
   );
 };
-
-SideBar.propTypes = {};
 
 export default SideBar;

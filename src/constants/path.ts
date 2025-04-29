@@ -5,5 +5,7 @@ export const PATH = {
   LOGIN: "/login",
   REGISTER: "/register",
   OAUTH_CALLBACK: "/auth/callback",
-  SOCKET_DEMO: "/socket-demo"
+  SOCKET_DEMO: "/socket-demo",
+  WATCHING: "/watching",
+  FOLLOWING: "/following"
 };
