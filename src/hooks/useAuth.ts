@@ -22,7 +22,8 @@ export const useAuth = () => {
   const { data: currentUser, isLoading: isLoadingUser } = useQuery({
     queryKey: ["currentUser"],
     queryFn: () => authService.getCurrentUser(),
-    retry: false
+    retry: false,
+    enabled: !!localStorage.getItem("token")
   });
 
   const loginMutation = useMutation({
@@ -57,8 +58,12 @@ export const useAuth = () => {
 
   const googleLoginMutation = useMutation({
     mutationFn: () => authService.loginWithGoogle(),
+    onMutate: () => {
+      setLoading(true);
+    },
     onError: (error: Error) => {
       setError(error.message);
+      setLoading(false);
     }
   });
 

@@ -1,11 +1,14 @@
 import { NavLink, useParams } from "react-router-dom";
 import { useChannelStore } from "@/store/slices/channelSlice";
 import { Button } from "@/components/ui/button";
-import { Bell, Radio, Settings, Share2 } from "lucide-react";
+import { Bell, Radio, Share2, UserPen } from "lucide-react";
 import { useChannelQuery } from "@/hooks/useChannelQuery";
 import { useTranslation } from "react-i18next";
+import { memo, useEffect } from "react";
+import blankAvt from "@/assets/blank-avt.avif";
+import { EditModal } from "./EditModal";
 
-const Header = () => {
+const Header = memo(() => {
   const { username } = useParams<{ username: string }>();
   const { t } = useTranslation();
   
@@ -18,7 +21,6 @@ const Header = () => {
     isFollowingLoading
   } = useChannelQuery(username);
   
-  // Get UI state from Zustand store
   const { 
     isFollowing,
     toggleFollow,
@@ -44,11 +46,16 @@ const Header = () => {
   
   // Define navigation items for the channel
   const navItems = [
-    { label: t('channel.home'), path: "" },
-    { label: t('channel.about'), path: "/about" },
-    { label: t('channel.videos'), path: "/videos" },
-    { label: t('channel.schedule'), path: "/schedule" },
+    { label: t('home'), path: "" },
+    { label: t('about'), path: "/about" },
+    { label: t('videos'), path: "/videos" },
+    { label: t('schedule'), path: "/schedule" },
   ];
+
+  // Log to verify component is not re-rendering unnecessarily
+  useEffect(() => {
+  
+  }, []);
 
   if (isLoading) {
     return (
@@ -68,9 +75,9 @@ const Header = () => {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end">
             {/* Left side: Profile image and info */}
             <div className="flex items-end">
-              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-background bg-secondary shadow-lg">
+              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-muted bg-transparent shadow-lg">
                 <img 
-                  src={channelData?.profileImage || channelData?.avatar} 
+                  src={channelData?.avatar || blankAvt} 
                   alt={channelData?.displayName}
                   className="w-full h-full object-cover"
                 />
@@ -78,7 +85,7 @@ const Header = () => {
               
               <div className="ml-4 mb-1">
                 <h1 className="text-xl md:text-2xl font-bold text-foreground">{channelData?.displayName}</h1>
-                <p className="text-muted-foreground text-sm">{channelData?.followers} {t('channel.followers')}</p>
+                <p className="text-muted-foreground text-sm text-start">{channelData?.followers} {t('followers')}</p>
               </div>
             </div>
             
@@ -101,7 +108,7 @@ const Header = () => {
                   <Button 
                     variant="ghost" 
                     className="w-10 h-10 p-0 rounded-full bg-secondary hover:bg-secondary/90"
-                    title={t('channel.notifications')}
+                    title={t('notifications')}
                   >
                     <Bell className="h-4 w-4 text-foreground" />
                   </Button>
@@ -110,7 +117,7 @@ const Header = () => {
                   <Button 
                     variant="ghost" 
                     className="w-10 h-10 p-0 rounded-full bg-secondary hover:bg-secondary/90"
-                    title={t('channel.share')}
+                    title={t('share')}
                   >
                     <Share2 className="h-4 w-4 text-foreground" />
                   </Button>
@@ -123,19 +130,12 @@ const Header = () => {
                   <Button 
                     variant="ghost" 
                     className="ml-2 bg-purple-500 hover:bg-purple-600 text-white"
-                    title={t('channel.goLive')}
+                    title={t('Go Live')}
                   >
                     <Radio className="h-4 w-4 mr-2" />
-                    {t('channel.goLive')}
+                    {t('Go Live')}
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="ml-2 bg-secondary hover:bg-secondary/90 text-foreground"
-                    title={t('channel.settings')}
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    {t('channel.settings')}
-                  </Button>
+                  <EditModal profileId={channelData?.id || ''} />
                 </div>
               )}
             </div>
@@ -164,6 +164,8 @@ const Header = () => {
       </div>
     </div>
   );
-};
+});
+
+Header.displayName = "Header";
 
 export default Header;

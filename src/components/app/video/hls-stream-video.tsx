@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
+import videojs from "video.js";
+import "video.js/dist/video-js.css";
+import Player from "video.js/dist/types/player";
 
 interface HLSPlayerProps {
   src: string;
@@ -30,6 +33,7 @@ const HLSPlayer: React.FC<HLSPlayerProps> = ({
   bufferSize = 30
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const playerRef = useRef<Player | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [qualityLevels, setQualityLevels] = useState<QualityLevel[]>([]);
   const [showQualityMenu, setShowQualityMenu] = useState(false);
@@ -41,48 +45,72 @@ const HLSPlayer: React.FC<HLSPlayerProps> = ({
   });
 
   useEffect(() => {
-    const video = videoRef.current;
+    // Initialize video.js player
+    if (!videoRef.current) return;
 
-    if (!video) return;
+    // Create videojs player with custom CSS to hide progress bar
+    const videoJsOptions = {
+      autoplay: true,
+      muted: true,
+      controls: controls,
+      responsive: true,
+      fluid: true,
+      html5: {
+        vhs: {
+          overrideNative: true
+        }
+      }
+    };
 
-    // Clean up previous HLS instance
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-    }
+    // Initialize the player
+    const player = videojs(videoRef.current, videoJsOptions);
+    playerRef.current = player;
 
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Safari native HLS support
-      video.src = src;
-    } else if (Hls.isSupported()) {
+    // Hide progress bar with CSS
+    const style = document.createElement('style');
+    style.textContent = `
+      .video-js .vjs-progress-control {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Handle HLS
+    if (Hls.isSupported()) {
+      // Clean up previous HLS instance
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+
       const hls = new Hls({
         capLevelToPlayerSize: true,
         autoStartLoad: true,
-        startLevel: startLevel, // -1 for automatic, 0 for lowest quality
-        // Advanced ABR configuration
-        abrEwmaDefaultEstimate: 500000, // Default bandwidth estimate (500kbps)
-        abrEwmaFastLive: 3.0, // Fast live EWMA coefficient
-        abrEwmaSlowLive: 9.0, // Slow live EWMA coefficient
-        abrBandWidthFactor: 0.95, // Bandwidth safety factor
-        abrBandWidthUpFactor: 0.7, // Bandwidth up factor
-        abrMaxWithRealBitrate: true, // Use real bitrate info from segments
-        maxBufferLength: bufferSize, // Maximum buffer length in seconds
-        maxMaxBufferLength: bufferSize * 1.5, // Maximum buffer length with buffer controller
-        enableWorker: true, // Enable webworker for better performance
-        lowLatencyMode: false, // Enable if your stream server supports low latency HLS
-        fragLoadingTimeOut: 20000, // Timeout for fragment loading
-        manifestLoadingTimeOut: 10000, // Timeout for manifest loading
+        startLevel: startLevel,
+        abrEwmaDefaultEstimate: 500000,
+        abrEwmaFastLive: 3.0,
+        abrEwmaSlowLive: 9.0,
+        abrBandWidthFactor: 0.95,
+        abrBandWidthUpFactor: 0.7,
+        abrMaxWithRealBitrate: true,
+        maxBufferLength: bufferSize,
+        maxMaxBufferLength: bufferSize * 1.5,
+        enableWorker: true,
+        lowLatencyMode: false,
+        fragLoadingTimeOut: 20000,
+        manifestLoadingTimeOut: 10000,
       });
       
       hlsRef.current = hls;
       hls.loadSource(src);
-      hls.attachMedia(video);
+      
+      // Attach hls to video element
+      const videoElement = player.tech({ IWillNotUseThisInPlugins: true }).el() as HTMLVideoElement;
+      hls.attachMedia(videoElement);
 
       // Set ABR mode based on prop
       if (!abr && startLevel >= 0) {
-        // Will set fixed quality below when levels are parsed
         hls.startLevel = startLevel;
       } else {
-        // For auto ABR
         hls.startLevel = -1; 
       }
       
@@ -126,7 +154,7 @@ const HLSPlayer: React.FC<HLSPlayerProps> = ({
       hls.on(Hls.Events.FRAG_BUFFERED, (event, data) => {
         setStats({
           bitrate: data.stats.bwEstimate,
-          buffered: video.buffered.length || 0, // Use video element's buffered property
+          buffered: videoElement.buffered.length || 0,
         });
       });
       
@@ -136,11 +164,11 @@ const HLSPlayer: React.FC<HLSPlayerProps> = ({
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
               console.error("Network error, trying to recover", data);
-              hls.startLoad(); // Try to recover
+              hls.startLoad();
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
               console.error("Media error, trying to recover", data);
-              hls.recoverMediaError(); // Try to recover
+              hls.recoverMediaError();
               break;
             default:
               console.error("Fatal error, cannot recover", data);
@@ -149,15 +177,31 @@ const HLSPlayer: React.FC<HLSPlayerProps> = ({
           }
         }
       });
-
-      return () => {
-        hls.destroy();
-        hlsRef.current = null;
-      };
+    } else if (videoRef.current.canPlayType("application/vnd.apple.mpegurl")) {
+      // For Safari which has native HLS support
+      player.src(src);
     } else {
       console.error("HLS is not supported in this browser.");
     }
-  }, [src, startLevel, abr, bufferSize]);
+
+    // Cleanup
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.dispose();
+        playerRef.current = null;
+      }
+      
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      
+      // Remove custom style
+      if (style.parentNode) {
+        style.parentNode.removeChild(style);
+      }
+    };
+  }, [src, startLevel, abr, bufferSize, controls]);
 
   const handleQualityChange = (levelIndex: number) => {
     if (!hlsRef.current) return;
@@ -193,16 +237,14 @@ const HLSPlayer: React.FC<HLSPlayerProps> = ({
 
   return (
     <div className="relative w-full">
-      <video
-        ref={videoRef}
-        autoPlay={true}
-        muted
-        controls={controls}
-        width={width}
-        height={height}
-        style={{ backgroundColor: "#000", borderRadius: "8px" }}
-        playsInline
-      />
+      <div data-vjs-player>
+        <video
+          ref={videoRef}
+          className="video-js vjs-big-play-centered"
+          playsInline
+          style={{ backgroundColor: "#000", borderRadius: "8px" }}
+        />
+      </div>
       
       {isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">

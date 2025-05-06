@@ -1,8 +1,10 @@
-import HLSPlayer from "@/pages/video/hls-stream-video";
+import HLSPlayer from "@/components/app/video/hls-stream-video";
 import { Button } from "@/components/ui/button";
 import { useChannelQuery } from "@/hooks/useChannelQuery";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { VideoChat } from "@/pages/video/components/VideoChat";
+import { Unplug } from "lucide-react";
 
 export default function Home() {
   const { username } = useParams<{ username: string }>();
@@ -28,18 +30,18 @@ export default function Home() {
         <div className="w-full md:w-2/3">
           {/* Live Stream or Featured Video */}
           <div className="bg-card rounded-md overflow-hidden">
-            {channelData?.isLive ? (
+            {channelData?.is_live ? (
               <div className="relative">
                 <div className="absolute top-3 left-3 bg-red-500 text-white text-xs py-1 px-2 rounded z-10 flex items-center">
                   <span className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></span>
                   LIVE
                 </div>
-                <HLSPlayer src="https://livestream.streamify.id.vn/hls/adaptive/test.m3u8" />
+                <HLSPlayer src={`${import.meta.env.VITE_STREAM_URL}test.m3u8`} />
               </div>
             ) : (
               <div className="relative aspect-video bg-secondary flex items-center justify-center">
                 <div className="text-foreground text-lg">
-                  {channelData?.displayName} {t('channel.channelOffline')}
+                  {channelData?.displayName} <Unplug />
                 </div>
               </div>
             )}
@@ -47,14 +49,14 @@ export default function Home() {
           
           {/* Stream Info */}
           <div className="mt-4">
-            <h2 className="text-foreground text-xl font-semibold">
-              {channelData?.isLive ? 
+            <h2 className="text-foreground text-xl font-semibold text-start">
+              {channelData?.is_live ? 
                 `${t('channel.streamInfo')} ${channelData?.category}` : 
                 t('channel.channelOffline')
               }
             </h2>
-            <div className="text-muted-foreground mt-1">
-              {channelData?.isLive ? 
+            <div className="text-muted-foreground mt-1 text-start">
+              {channelData?.is_live ? 
                 `${Math.floor(Math.random() * 10000).toLocaleString()} ${t('channel.viewers')}` : 
                 `${t('channel.lastLive')} ${Math.floor(Math.random() * 7) + 1} ${t('channel.daysAgo')}`
               }
@@ -62,21 +64,10 @@ export default function Home() {
           </div>
         </div>
         
-        <div className="w-full md:w-1/3">
+        <div className="w-full md:w-1/3 border border-neutral-800 rounded-md">
           {/* About the Channel */}
           <div className="bg-card rounded-md p-4 h-full">
-            <h3 className="text-foreground text-lg font-semibold mb-3">{t('channel.about')} {channelData?.displayName}</h3>
-            <p className="text-card-foreground text-sm line-clamp-4 mb-4">
-              {channelData?.description}
-            </p>
-            
-            <div className="flex flex-wrap gap-2 mb-4">
-              {channelData?.tags.map((tag, index) => (
-                <span key={index} className="bg-secondary cursor-pointer text-secondary-foreground px-2 py-1 rounded text-xs hover:translate-y-[-2px] transition-all duration-300">
-                  {tag}
-                </span>
-              ))}
-            </div>
+          <VideoChat videoId={"test"} />
           </div>
         </div>
       </div>

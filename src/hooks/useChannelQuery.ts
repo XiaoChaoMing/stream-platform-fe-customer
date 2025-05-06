@@ -2,14 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { channelService } from '@/services/app/channel';
 import { useChannelStore } from '@/store/slices/channelSlice';
 import { useEffect } from 'react';
-
-// Mock current user data - In a real app this would come from authentication
-const currentUser = {
-  username: 'summit1g',
-  isLoggedIn: true
-};
+import { useStore } from '@/store/useStore';
 
 export const useChannelQuery = (username?: string) => {
+  const { user: currentUser } = useStore();
+  
   const queryClient = useQueryClient();
   const { 
     setChannel, 
@@ -61,12 +58,35 @@ export const useChannelQuery = (username?: string) => {
     }
     
     if (data) {
-      setChannel(data);
+      // Create IChannelDetailed from data
+      const detailedChannel = {
+        ...data,
+        displayName: data.profile?.name || data.username,
+        profileImage: data.avatar || '',
+        bannerImage: data.profile?.banner_url || '',
+        followers: '0', // This would come from a separate API call
+        isPartner: false, // Based on role perhaps
+        isAffiliate: false,
+        socialLinks: data.profile?.social_links || {},
+        panels: [],
+        videos: videos || [],
+        schedule: {
+          days: [],
+          startTime: '',
+          endTime: '',
+          timezone: ''
+        },
+        category: '',
+        createdAt: '',
+        updatedAt: ''
+      };
+      
+      setChannel(detailedChannel);
       
       // Check if the user is viewing their own channel
       setIsOwnChannel(
-        currentUser.isLoggedIn && 
-        username?.toLowerCase() === currentUser.username.toLowerCase()
+        !!currentUser && 
+        username?.toLowerCase() === currentUser.username?.toLowerCase()
       );
     }
     
@@ -74,7 +94,16 @@ export const useChannelQuery = (username?: string) => {
     return () => {
       resetState();
     };
-  }, [data, isLoading, error, username, setChannel, setLoading, setError, resetState, setIsOwnChannel]);
+  }, [data, videos, isLoading, error, username, currentUser, setChannel, setLoading, setError, resetState, setIsOwnChannel]);
+
+  // Re-check own channel status when user changes
+  useEffect(() => {
+    if (data && currentUser) {
+      setIsOwnChannel(
+        username?.toLowerCase() === currentUser.username?.toLowerCase()
+      );
+    }
+  }, [currentUser, username, setIsOwnChannel, data]);
 
   return {
     data,

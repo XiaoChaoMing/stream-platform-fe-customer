@@ -3,12 +3,15 @@ import defaultVideo from "@/assets/csVideo.mp4";
 import Header from "./components/Header";
 import { Outlet, useParams } from "react-router-dom";
 import { useChannelQuery } from "@/hooks/useChannelQuery";
+import { useMemo } from "react";
 
 const Channel = () => {
   const { username } = useParams<{ username: string }>();
-  
   // Fetch channel data when component mounts
-  const { isLoading, error } = useChannelQuery(username);
+  const { data,isLoading, error } = useChannelQuery(username);
+
+  // Memoize the Header component to prevent re-renders on tab changes
+  const memoizedHeader = useMemo(() => <Header />, [username]);
 
   // If no username, render a fallback or error
   if (!username) {
@@ -42,13 +45,30 @@ const Channel = () => {
   return (
     <MainLayout>
       <div className="relative h-full w-full overflow-y-scroll bg-accent">
-        <video autoPlay muted loop>
-          <source src={defaultVideo} />
-        </video>
+      {(() => {
+          const isImage = data?.bannerImage?.match(/\.(jpeg|jpg|png|gif|webp)$/i);
+          const isVideo = data?.bannerImage?.match(/\.(mp4|webm|ogg)$/i);
+
+          if (isImage) {
+            return <img src={data?.bannerImage} alt="Banner" />;
+          } else if (isVideo) {
+            return (
+              <video autoPlay muted loop>
+                <source src={data?.bannerImage} type="video/mp4" />
+              </video>
+            );
+          } else {
+            return <video autoPlay muted loop>
+            <source src={defaultVideo} type="video/mp4" />
+          </video>;
+          }
+        })()}
+
         <div className="absolute top-100 min-h-full w-[95%] rounded-md bg-background p-4">
-          {/* head channel */}
-          <Header />
-          {/* main content */}
+          {/* head channel - memoized to prevent re-renders */}
+          {memoizedHeader}
+          
+          {/* main content - will be updated via Outlet when routes change */}
           <div className="mt-5">
             <Outlet />
           </div>

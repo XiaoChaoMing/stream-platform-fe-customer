@@ -34,30 +34,29 @@ export interface ISocialLinks {
 }
 
 export interface IChannelDetailed extends IChannel {
-  username: string;
   displayName: string;
   profileImage: string;
   bannerImage: string;
   followers: string;
   isPartner: boolean;
   isAffiliate: boolean;
-  isLive: boolean;
   socialLinks: ISocialLinks;
   panels: IPanel[];
   videos: VideoData[];
   schedule: ISchedule;
+  category?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export const DefaultChannelDetailed: IChannelDetailed = {
   ...DefaultChannel,
-  username: '',
   displayName: '',
   profileImage: '',
   bannerImage: '',
   followers: '0',
   isPartner: false,
   isAffiliate: false,
-  isLive: false,
   socialLinks: {},
   panels: [],
   videos: [],
@@ -66,7 +65,10 @@ export const DefaultChannelDetailed: IChannelDetailed = {
     startTime: '',
     endTime: '',
     timezone: ''
-  }
+  },
+  category: '',
+  createdAt: '',
+  updatedAt: ''
 };
 
 interface ChannelState {

@@ -5,7 +5,7 @@ import { useStore } from "@/store/useStore";
 import LogoBlack from "@/assets/logo-black.png";
 import LogoWhite from "@/assets/logo-white.png";
 import { SocketStatus } from "@/components/base/SocketStatus";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { PATH } from "@/constants/path";
 import {
   Crown,
@@ -14,11 +14,19 @@ import {
   MessageSquare,
   Search,
   Sun,
-  Moon
+  Moon,
+  Menu
 } from "lucide-react";
 
 const Header = () => {
-  const { theme, toggleTheme } = useStore();
+  const { theme, toggleTheme, user } = useStore();
+  const navigate = useNavigate();
+
+  const handleNavigateToUserChannel = () => {
+    if (user?.username) {
+      navigate(`/channel/${user.username}`);
+    }
+  };
 
   return (
     <div className="fixed z-99 mb-1 flex h-fit w-full items-center justify-between bg-[var(--primary-foreground)] px-4 py-2.5">
@@ -33,6 +41,7 @@ const Header = () => {
             />
           </Link>
         </div>
+        <div className="sm:flex items-center justify-center gap-2 hidden mt-1">
         <Link
           to={PATH.FOLLOWING}
           className="text-md ml-4 font-medium transition-all duration-300 hover:text-[var(--color-chart-4)]"
@@ -45,18 +54,18 @@ const Header = () => {
         >
           Browse
         </Link>
-
         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md">
           <EllipsisVertical />
         </Button>
+        </div>
       </div>
-      <div className="flex items-center justify-center gap-2">
+      <div className="hidden sm:flex items-center justify-center gap-2">
         <Input className="min-w-xl" placeholder="Search..." />
         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md">
           <Search />
         </Button>
       </div>
-      <div className="flex items-center justify-center gap-3">
+      <div className="hidden sm:flex items-center justify-center gap-3">
         <div className="relative">
           <SocketStatus />
         </div>
@@ -77,10 +86,13 @@ const Header = () => {
         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md">
           <Inbox className="hover:text-primary cursor-pointer" />
         </Button>
-        <Avatar className="cursor-pointer">
-          <AvatarImage src="https://github.com/shadcn.png" />
-          <AvatarFallback>CN</AvatarFallback>
+        <Avatar className="cursor-pointer" onClick={handleNavigateToUserChannel}>
+          <AvatarImage src={user?.avatar} />
+          <AvatarFallback>{user?.username.charAt(0)}</AvatarFallback>
         </Avatar>
+      </div>
+      <div className="flex items-center justify-center gap-3 sm:hidden">
+        <Menu />
       </div>
     </div>
   );

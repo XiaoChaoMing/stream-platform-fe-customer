@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { IChannel, DefaultChannel } from "@/types/app/Ichannel.type";
-import { channelService } from "@/services/app/channel";
+import { getChannelByUsername } from "@/services/app/channel";
 
 interface ChannelContextType {
   channel: IChannel;
@@ -29,18 +29,9 @@ export const ChannelProvider = ({
     setError(null);
     
     try {
-      const channelData = await channelService.getChannelByUsername(channelId);
+      const channelData = await getChannelByUsername(channelId);
       if (channelData) {
-        setChannel({
-          id: channelData.id,
-          name: channelData.name,
-          avatar: channelData.avatar,
-          description: channelData.description,
-          category: channelData.category,
-          tags: channelData.tags,
-          createdAt: channelData.createdAt,
-          updatedAt: channelData.updatedAt
-        });
+        setChannel(channelData);
       } else {
         setError("Channel not found");
       }

@@ -31,7 +31,6 @@ const ChannelCard = ({
   const handleChannelClick = () => {
     navigate(`/channel/${username}`);
   };
-
   return (
     <TooltipProvider>
       <Tooltip>
@@ -49,7 +48,7 @@ const ChannelCard = ({
               </Avatar>
               {!isCollapsed && (
                 <div className="flex flex-col items-start justify-center">
-                  <h1 className="font-medium">{username}</h1>
+                  <h1 className="font-medium max-w-[110px] overflow-hidden text-ellipsis whitespace-nowrap">{username}</h1>
                   <h1 className="w-36 overflow-hidden text-ellipsis whitespace-nowrap text-[var(--muted-foreground)]">
                     {detail}
                   </h1>

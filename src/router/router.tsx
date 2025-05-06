@@ -4,10 +4,13 @@ import { channelRoutes } from "./channelRouter";
 import { loginRoutes } from "./loginRouter";
 import { watchingRoutes } from "./watchingRouter";
 import { followingRoutes } from "./followingRouter";
+import { videoRoutes } from "./videoRouter";
+
 export const router = createBrowserRouter([
   ...homeRoutes,
   ...loginRoutes,
   ...channelRoutes,
   ...watchingRoutes,
-  ...followingRoutes
+  ...followingRoutes,
+  ...videoRoutes
 ]);

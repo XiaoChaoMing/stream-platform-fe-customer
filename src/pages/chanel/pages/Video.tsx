@@ -16,7 +16,6 @@ export default function Video() {
   const { 
     currentChannel: channelData, 
     isLoading, 
-    isEditingMode, 
     isOwnChannel 
   } = useChannelStore();
 
@@ -26,11 +25,11 @@ export default function Video() {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-6 text-foreground">{t('channel.videos')}</h1>
+      <h1 className="text-2xl font-bold mb-6 text-foreground text-start">{t('channel.videos')}</h1>
       
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-foreground text-xl font-semibold">{t('channel.videos')}</h2>
-        {isEditingMode && isOwnChannel && (
+        {isOwnChannel && (
           <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
             <PlusCircle className="h-4 w-4 mr-2" />
             Upload Video
@@ -45,7 +44,7 @@ export default function Video() {
         <Button variant="ghost" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground whitespace-nowrap">Clips</Button>
         <Button variant="ghost" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground whitespace-nowrap">Highlights</Button>
         <Button variant="ghost" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground whitespace-nowrap">Collections</Button>
-        {isEditingMode && isOwnChannel && (
+        {isOwnChannel && (
           <Button variant="ghost" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground whitespace-nowrap">
             <PlusCircle className="h-4 w-4 mr-2" />
             New Collection
@@ -57,7 +56,7 @@ export default function Video() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {channelData.videos.map(video => (
           <div key={video.id} className="bg-card rounded-md overflow-hidden transition-transform hover:translate-y-[-4px] cursor-pointer relative">
-            {isEditingMode && isOwnChannel && (
+            {isOwnChannel && (
               <div className="absolute top-2 right-2 z-10 flex space-x-2">
                 <Button className="h-8 w-8 p-0 bg-secondary/70 hover:bg-secondary/90 rounded-full">
                   <Edit3 className="h-4 w-4 text-secondary-foreground" />

@@ -1,5 +1,5 @@
 import { ArrowLeftToLine, ArrowRightToLine } from "lucide-react";
-import { useState } from "react";
+import { useState, memo } from "react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -9,45 +9,23 @@ import {
 } from "@/components/ui/tooltip";
 import ChannelCard from "../channelCard/ChannelCard";
 import { useQuery } from "@tanstack/react-query";
-import { channelService } from "@/services/app/channel";
-
-// Use the channel interface that matches what we need for the sidebar
-interface Channel {
-  id: string;
-  username: string;
-  profileImage: string;
-  description: string;
-  isLive: boolean;
-  category: string;
-}
+import { getRecommendedChannels } from "@/services/app/channel";
+import { IChannel } from "@/types/app/Ichannel.type";
+import { useStore } from "@/store/useStore";
 
 // Create a new service function to get recommended channels
-const getRecommendedChannels = async (): Promise<Channel[]> => {
-  // For now, we'll use our mock data
-  // In a real implementation, this would be a separate API endpoint
-  const mockUsernames = ['summit1g', 'ninja'];
-  const fetchedChannels = await Promise.all(
-    mockUsernames.map(username => channelService.getChannelByUsername(username))
-  );
-  
-  return fetchedChannels.map(channel => ({
-    id: channel.id,
-    username: channel.username,
-    profileImage: channel.profileImage,
-    description: channel.description,
-    isLive: channel.isLive,
-    category: channel.category
-  }));
+const getRecommendedChannelsForSidebar = async (user_id: number): Promise<IChannel[]> => {
+  return await getRecommendedChannels(user_id);
 };
 
 const SideBar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { user } = useStore();
 
-  // Fetch recommended channels using React Query
   const { data: recommendedChannels, isLoading } = useQuery({
-    queryKey: ['recommendedChannels'],
-    queryFn: getRecommendedChannels,
-    staleTime: 5 * 60 * 1000 // 5 minutes
+    queryKey: ['recommendedChannels', user?.user_id],
+    queryFn: () => getRecommendedChannelsForSidebar(parseInt(user?.user_id || '0')),
+    staleTime: 5 * 60 * 1000 
   });
 
   return (
@@ -86,11 +64,11 @@ const SideBar = () => {
           recommendedChannels.map((channel) => (
             <ChannelCard
               key={channel.id}
-              channelId={channel.username} // Using username instead of id for routing
+              channelId={channel.username} 
               username={channel.username}
-              imageUrl={channel.profileImage}
-              detail={channel.category}
-              isLive={channel.isLive}
+              imageUrl={channel.avatar || ""}
+              detail={channel.profile?.description?.substring(0, 20) || ''}
+              isLive={channel.is_live || false}
               viewCount={Math.floor(Math.random() * 15000)}
               isCollapsed={isCollapsed}
             />
@@ -103,4 +81,4 @@ const SideBar = () => {
   );
 };
 
-export default SideBar;
+export default memo(SideBar);

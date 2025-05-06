@@ -36,18 +36,11 @@ class AuthService extends BaseService {
 
       // Store token
       localStorage.setItem("token", response.access_token);
+      if (response.user?.user_id) {
+        localStorage.setItem("userId", response.user.user_id);
+      }
       return response.user;
     } catch (error) {
-      // For development/testing, return mock user if API is not available
-      if (username === "john" && password === "123456") {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        return {
-          id: "1",
-          name: "John Doe",
-          email: "john@example.com",
-          role: "admin"
-        };
-      }
       throw error;
     }
   }
@@ -68,6 +61,9 @@ class AuthService extends BaseService {
 
       // Store token
       localStorage.setItem("token", response.access_token);
+      if (response.user?.user_id) {
+        localStorage.setItem("userId", response.user.user_id);
+      }
       return response.user;
     } catch (error) {
       throw error;
@@ -81,11 +77,24 @@ class AuthService extends BaseService {
 
   async logout(): Promise<void> {
     localStorage.removeItem("token");
+    localStorage.removeItem("userId");
   }
 
   async getCurrentUser(): Promise<User | null> {
     try {
-      return await this.get<User>("/auth/me");
+      // Get user info based on stored token
+      const token = localStorage.getItem("token");
+      const userId = localStorage.getItem("userId");
+      if (!userId) return null;
+      
+      if (!token) return null;
+      
+      // Try to get user info from the API
+      try {
+        return await this.get<User>(`/users/getById/${userId}`)
+      } catch (error) {
+        throw error;
+      }
     } catch {
       return null;
     }

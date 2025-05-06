@@ -7,5 +7,6 @@ export const PATH = {
   OAUTH_CALLBACK: "/auth/callback",
   SOCKET_DEMO: "/socket-demo",
   WATCHING: "/watching",
-  FOLLOWING: "/following"
+  FOLLOWING: "/following",
+  VIDEO: "/video/:id"
 };

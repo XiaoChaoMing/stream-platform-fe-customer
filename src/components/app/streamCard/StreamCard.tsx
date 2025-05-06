@@ -64,9 +64,9 @@ const StreamCard = ({
       <div className="flex flex-row gap-2 flex-1 min-w-0">
         {/* stream avatar */}
         <Avatar className={`${variant === "sm" ? "hidden" : "size-9"} cursor-pointer shrink-0`}>
-          <AvatarImage src={channel.avatar} alt={channel.name} />
+          <AvatarImage src={channel.avatar || ""} alt={channel.username} />
           <AvatarFallback>
-            {channel.name.substring(0, 2).toUpperCase()}
+            {channel.username.substring(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
         {/* stream info */}
@@ -77,7 +77,7 @@ const StreamCard = ({
           >
             {streamName}
           </a>
-          <a href="#" className="text-sm text-muted-foreground truncate w-full text-start">{channel.name}</a>
+          <a href="#" className="text-sm text-muted-foreground truncate w-full text-start">{channel.username}</a>
           <a href="#" className="text-sm text-muted-foreground hover:text-[var(--chart-4)] truncate w-full text-start">
 
             {category}

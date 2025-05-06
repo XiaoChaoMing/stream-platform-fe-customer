@@ -3,46 +3,66 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useStore } from "@/store";
 import { Loader2 } from "lucide-react";
 import { PATH } from "@/constants/path";
+import { authService } from "@/services/auth/auth";
 
 function OAuthCallbackPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { setUser, setError } = useStore();
   const [isProcessing, setIsProcessing] = useState(true);
+  const [message, setMessage] = useState("Completing authentication...");
 
   useEffect(() => {
     const processOAuthCallback = async () => {
       try {
+        // Get token and userId from URL query parameters
         const token = searchParams.get("token");
+        const userId = searchParams.get("userId");
+        const error = searchParams.get("error");
+        
+        if (error) {
+          throw new Error(decodeURIComponent(error));
+        }
 
         if (!token) {
           throw new Error("No token received from authentication provider");
         }
 
-        // Store the token
+        // Store the token and userId in localStorage
         localStorage.setItem("token", token);
+        
+        if (userId) {
+          localStorage.setItem("userId", userId);
+        }
 
-        // Fetch user data or decode the token if it contains user info
-        // This is a simplified example, you might need to fetch user data from your API
-        const userData = {
-          id: "oauth-user",
-          name: "OAuth User",
-          email: searchParams.get("email") || "oauth@example.com",
-          role: "user"
-        };
+        setMessage("Fetching your account information...");
 
-        // Update the app state with the authenticated user
-        setUser(userData);
-
-        // Redirect to home page after successful authentication
-        setTimeout(() => {
-          navigate(PATH.HOME);
-        }, 1500);
+        // Fetch user data using the token
+        try {
+          const userData = await authService.getCurrentUser();
+          if (userData) {
+            // Update the app state with the authenticated user
+            setUser(userData);
+            
+            setMessage("Authentication successful! Redirecting...");
+            
+            // Redirect to home page after successful authentication
+            setTimeout(() => {
+              navigate(PATH.HOME);
+            }, 1500);
+          } else {
+            throw new Error("Failed to get user information");
+          }
+        } catch (userError) {
+          throw new Error("Failed to authenticate properly");
+        }
       } catch (error) {
         console.error("OAuth callback error:", error);
         setError(
           error instanceof Error ? error.message : "Authentication failed"
         );
+        
+        setMessage("Authentication failed. Redirecting to login...");
 
         // Redirect to login page if authentication fails
         setTimeout(() => {
@@ -63,7 +83,7 @@ function OAuthCallbackPage() {
           <>
             <Loader2 className="text-primary h-12 w-12 animate-spin" />
             <h1 className="text-xl font-medium">
-              Completing authentication...
+              {message}
             </h1>
             <p className="text-muted-foreground text-sm">
               Please wait while we verify your account
@@ -88,7 +108,7 @@ function OAuthCallbackPage() {
                 <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
             </div>
-            <h1 className="text-xl font-medium">Authentication successful!</h1>
+            <h1 className="text-xl font-medium">{message}</h1>
             <p className="text-muted-foreground text-sm">
               Redirecting you to the dashboard...
             </p>
