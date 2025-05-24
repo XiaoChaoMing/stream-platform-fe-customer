@@ -17,7 +17,6 @@ export async function initializeMinioBucket() {
     const exists = await minioClient.bucketExists(MINIO_BUCKET_NAME);
     if (!exists) {
       await minioClient.makeBucket(MINIO_BUCKET_NAME);
-      console.log(`Bucket '${MINIO_BUCKET_NAME}' created successfully`);
     }
   } catch (error) {
     console.error("Error initializing MinIO bucket:", error);

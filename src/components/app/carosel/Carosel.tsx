@@ -38,7 +38,7 @@ const Carousel = ({ items }: CarouselProps) => {
       >
         {items.map((item) => (
           <SwiperSlide key={item.id}>
-            <div className="relative h-[400px] md:h-[450px] w-full">
+            <div className="relative h-[300px] md:h-[450px] w-full">
               {/* Gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent z-10"></div>
               
@@ -50,12 +50,12 @@ const Carousel = ({ items }: CarouselProps) => {
               />
               
               {/* Content */}
-              <div className="relative z-20 h-full flex flex-col justify-center px-6 md:px-12 lg:px-20 max-w-3xl text-white">
-                <h2 className="text-2xl md:text-4xl font-bold mb-3 md:mb-5">
+              <div className="relative z-20 h-full flex flex-col justify-center px-6 md:px-12 lg:px-20 max-w-3xl text-white ">
+                <h2 className="text-2xl md:text-4xl font-bold mb-3 md:mb-5 text-start static ">
                   {item.title || "Featured Content"}
                 </h2>
                 
-                <p className="text-sm md:text-base opacity-90 mb-6 md:mb-8 line-clamp-3">
+                <p className="text-sm md:text-base opacity-90 mb-6 md:mb-8 line-clamp-3 text-start">
                   {item.description || "Check out our featured content and discover something new today. Don't miss this amazing opportunity."}
                 </p>
                 
@@ -69,7 +69,7 @@ const Carousel = ({ items }: CarouselProps) => {
                   
                   <Button 
                     variant="outline" 
-                    className="border-white text-white hover:bg-white/20"
+                    className="border-white text-muted-foreground hover:bg-white/20"
                     size="lg"
                   >
                     Learn More
@@ -80,9 +80,9 @@ const Carousel = ({ items }: CarouselProps) => {
           </SwiperSlide>
         ))}
 
-        <div className="slider-controler">
-          <div className="swiper-button-prev slider-arrow !text-white"></div>
-          <div className="swiper-button-next slider-arrow !text-white"></div>
+        <div className="slider-controler hidden sm:block">
+          <div className="swiper-button-prev slider-arrow !text-white hidden sm:block"></div>
+          <div className="swiper-button-next slider-arrow !text-white hidden sm:block"></div>
         </div>
       </Swiper>
     </div>

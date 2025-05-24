@@ -18,7 +18,7 @@ class SocketService {
         transports: ["websocket"],
         auth: {
           token: localStorage.getItem("token")
-        }
+        },
       }
     );
 
@@ -37,17 +37,15 @@ class SocketService {
     if (!this.socket) return;
 
     this.socket.on("connect", () => {
-      console.log("Socket connected");
       this.connectionStatus = "connected";
     });
 
     this.socket.on("disconnect", () => {
-      console.log("Socket disconnected");
       this.connectionStatus = "disconnected";
     });
 
     this.socket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error);
+        console.error("Socket connection error:", error);
       this.connectionStatus = "disconnected";
     });
 

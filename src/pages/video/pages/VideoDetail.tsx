@@ -1,68 +1,41 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import { VideoPlayer } from "../components/VideoPlayer";
 import { VideoInfo } from "../components/VideoInfo";
-import { VideoChat } from "../components/VideoChat";
 import { RelatedVideos } from "../components/RelatedVideos";
 import { ProfileInfo } from "../components/ProfileInfo";
+import { CommentSection } from "../components/CommentSection";
 import MainLayout from "@/layouts/mainLayout";
-
-interface VideoData {
-  id: string;
-  title: string;
-  views: number;
-  createdAt: string;
-  videoUrl: string;
-  thumbnailUrl: string;
-  channel: {
-    id: string;
-    name: string;
-    avatar: string;
-    followers: number;
-  };
-}
-
-// Mock video data with Twitch-like structure
-const mockVideoData: VideoData = {
-  id: "CallousAliveFlyWow-KEVWDJlK7Q8KpkFG",
-  title: "test",
-  views: 5,
-  createdAt: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000).toISOString(), // 13 days ago
-  videoUrl: "https://www.example.com/video.mp4", // This would typically be a real video URL
-  thumbnailUrl: "https://static-cdn.jtvnw.net/twitch-clips-thumbnails-prod/CallousAliveFlyWow-KEVWDJlK7Q8KpkFG/d241844a-472a-4723-922c-ed4bcf1a9181/preview.jpg",
-  channel: {
-    id: "nhatminh1498",
-    name: "nhatminh1498",
-    avatar: "https://static-cdn.jtvnw.net/user-default-pictures-uv/cdd517fe-def4-11e9-948e-784f43822e80-profile_image-70x70.png",
-    followers: 0
-  }
-};
+import { useVideoQuery } from "@/hooks/useVideoQuery";
+import { format } from "date-fns";
 
 const VideoDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [video, setVideo] = useState<VideoData | null>(null);
-  const [loading, setLoading] = useState(true);
+  
+  // Use the custom hook to fetch video data
+  const { getVideoById } = useVideoQuery();
+  const { data: video, isLoading, error } = getVideoById(id);
+  
+  
+  // State to track the current view count (updated in real-time)
+  const [currentViewCount, setCurrentViewCount] = useState<number | undefined>(undefined);
+  
+  // Handler for view count updates from VideoPlayer component
+  const handleViewCountUpdate = (newViewCount: number) => {
+    setCurrentViewCount(newViewCount);
+  };
 
-  useEffect(() => {
-    // In a real app, this would fetch the video data from an API
-    // For now, we'll simulate an API call with a timeout
-    const fetchVideoData = async () => {
-      setLoading(true);
-      try {
-        // Simulate API call with a timeout
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setVideo(mockVideoData);
-      } catch (error) {
-        console.error("Failed to fetch video data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Format date if available
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy');
+    } catch (error) {
+      return dateString;
+    }
+  };
 
-    fetchVideoData();
-  }, [id]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-screen">
@@ -72,7 +45,7 @@ const VideoDetail: React.FC = () => {
     );
   }
 
-  if (!video) {
+  if (error || !video) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-screen">
@@ -87,51 +60,61 @@ const VideoDetail: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main content - Video and info */}
-          <div className="lg:col-span-2">
-            <div className="rounded-md overflow-hidden bg-neutral-900">
-              {/* Video Player */}
-              <VideoPlayer videoUrl={video.videoUrl} />
-              
-              {/* Video Info */}
-              <div className="p-4">
-                <VideoInfo 
-                  title={video.title} 
-                  views={video.views} 
-                  createdAt={video.createdAt} 
-                  channelName={video.channel.name}
-                />
-                
-                {/* Channel/Streamer Info */}
-                <div className="mt-6">
-                  <ProfileInfo 
-                    name={video.channel.name}
-                    avatar={video.channel.avatar}
-                    followers={video.channel.followers}
-                  />
+      <div className="relative h-full w-full overflow-y-scroll">
+          <div className="absolute w-full h-full rounded-md bg-[var(--background)] p-2 sm:p-0">
+              <div className="container mx-auto px-4 py-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Main content - Video and info */}
+                  <div className="lg:col-span-2">
+                    <div className="rounded-md overflow-hidden bg-card">
+                      {/* Video Player */}
+                      <VideoPlayer 
+                        videoUrl={video.video_url} 
+                        videoId={video.video_id} 
+                        initialViewCount={video.view_count}
+                        onViewCountUpdate={handleViewCountUpdate}
+                      />
+                      
+                      {/* Video Info */}
+                      <div className="p-4">
+                        <VideoInfo video={video} currentViewCount={currentViewCount} />
+                        
+                        {/* Video Description */}
+                        {video.description && (
+                          <div className="mt-4 p-4 bg-muted rounded-md">
+                            <h3 className="text-lg font-medium mb-2 text-start">Description</h3>
+                            <p className="text-sm text-muted-foreground whitespace-pre-line text-start">
+                              {video.description}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Channel/Streamer Info */}
+                        <div className="mt-6">
+                          <ProfileInfo user={video.user} />
+                        </div>
+                        
+                        {/* Comments Section */}
+                        <CommentSection videoId={video.video_id} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="lg:col-span-1">
+                    <div className="space-y-6">
+                      {/* Related Videos */}
+                      <div className="rounded-md overflow-hidden bg-card">
+                        <RelatedVideos currentVideoId={String(video.video_id)} />
+                      </div>
+                    </div>
+                  </div>
+                  
                 </div>
+                        
               </div>
-            </div>
+              <div className="h-10"></div>
           </div>
-          
-          {/* Sidebar - Chat and related videos */}
-          <div className="lg:col-span-1">
-            <div className="space-y-6">
-              {/* Chat Section */}
-              <div className="rounded-md overflow-hidden bg-neutral-900">
-                <VideoChat videoId={video.id} />
-              </div>
-              
-              {/* Related Videos */}
-              <div className="rounded-md overflow-hidden bg-neutral-900">
-                <RelatedVideos currentVideoId={video.id} />
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
+      
     </MainLayout>
   );
 };

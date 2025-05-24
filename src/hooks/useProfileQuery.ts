@@ -1,8 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { profileService } from '@/services/app/profile';
-import { IUpdateProfileRequest } from '@/types/app/IProfile.type';
+import { IUpdateProfileRequest, IUpdateProfileWithFilesRequest } from '@/types/app/IProfile.type';
 import { useStore } from '@/store/useStore';
 import { useNavigate } from 'react-router-dom';
+
+// Define an interface for the API response which includes a user property
+interface ProfileUpdateResponse {
+  user?: {
+    user_id: number;
+    username: string;
+    email: string;
+    avatar: string;
+    role_id: number;
+  };
+  profile?: {
+    banner_url?: string;
+    [key: string]: any;
+  };
+  [key: string]: any; // Add index signature to allow additional properties
+}
 
 export const useProfileQuery = (userId?: number) => {
   const queryClient = useQueryClient();
@@ -20,84 +36,82 @@ export const useProfileQuery = (userId?: number) => {
     enabled: !!userId,
   });
 
-  const { mutate: updateProfile, isPending: isUpdatingProfile } = useMutation({
-    mutationFn: ({ profileId, data }: { profileId: string | number, data: IUpdateProfileRequest }) => 
-      profileService.updateProfile(profileId, data),
-    onSuccess: (updatedProfile, variables) => {
-      // Invalidate the profile query to refetch the latest data
+  // Mutation for updating profile with file uploads
+  const { mutate: updateProfile, isPending: isUpdatingProfile } = useMutation<ProfileUpdateResponse, Error, { userId: number, data: IUpdateProfileWithFilesRequest }>({
+    mutationFn: ({ userId, data }) => 
+      profileService.updateProfile(userId, data) as Promise<ProfileUpdateResponse>,
+    onSuccess: (responseData, variables) => {
+      // Extract avatar and banner from the response
+      const newAvatar = responseData.user?.avatar;
+      const newBanner = responseData.profile?.banner_url;
+      
+      // Immediately invalidate and refresh necessary queries
       queryClient.invalidateQueries({ queryKey: ['profile', userId] });
       
-      // Check if username was updated and update the user in store
-      if (variables.data.username && user && variables.data.username !== user.username) {
-        const newUsername = variables.data.username;
-        
-        // Create updated user object
+      if (user && (newAvatar || newBanner)) {
+        // Create updated user object with new avatar
         const updatedUser = {
-          ...user,
-          username: newUsername,
-          // If avatar was updated, update it in the user object too
-          ...(variables.data.avatar ? { avatar: variables.data.avatar } : {})
+          ...user
         };
         
-        // Update the user in the store
+        // Update avatar if available in response
+        if (newAvatar) {
+          updatedUser.avatar = newAvatar;
+        }
+        
+        // Update the user in the global store
         setUser(updatedUser);
         
-        // Manually update localStorage to ensure persistence
-        const storedData = localStorage.getItem('app-storage');
-        if (storedData) {
-          try {
-            const parsedData = JSON.parse(storedData);
-            parsedData.state.user = updatedUser;
-            localStorage.setItem('app-storage', JSON.stringify(parsedData));
-          } catch (e) {
-            console.error('Error updating localStorage:', e);
-          }
-        }
+        // Manually update localStorage to ensure it's updated
+        updateManuallyLocalStorage(updatedUser);
         
-        // If we're on a channel page with the old username, navigate to the new username
-        const currentPath = window.location.pathname;
-        if (currentPath.includes(`/channel/${user.username}`)) {
-          // Redirect to the new channel URL
-          navigate(currentPath.replace(`/channel/${user.username}`, `/channel/${newUsername}`));
-        }
-        
-        // Invalidate the channel query for both old and new usernames
+        // Invalidate relevant queries to refresh data
         queryClient.invalidateQueries({ queryKey: ['channel', user.username] });
-        queryClient.invalidateQueries({ queryKey: ['channel', newUsername] });
-      } else if (variables.data.avatar && user) {
-        // If only avatar was updated, still update the user in store
-        const updatedUser = {
-          ...user,
-          avatar: variables.data.avatar
-        };
+        queryClient.invalidateQueries({ queryKey: ['currentUser'] });
         
-        // Update the user in the store
-        setUser(updatedUser);
+        // Trigger custom storage event to force components to update
+        window.dispatchEvent(new CustomEvent('app-storage-update', { 
+          detail: { user: updatedUser } 
+        }));
         
-        // Manually update localStorage
-        const storedData = localStorage.getItem('app-storage');
-        if (storedData) {
-          try {
-            const parsedData = JSON.parse(storedData);
-            parsedData.state.user = updatedUser;
-            localStorage.setItem('app-storage', JSON.stringify(parsedData));
-          } catch (e) {
-            console.error('Error updating localStorage:', e);
-          }
-        }
-        
-        // Invalidate the channel query as avatar might have changed
-        if (user.username) {
-          queryClient.invalidateQueries({ queryKey: ['channel', user.username] });
-        }
+        // Also trigger a profile-updated event for components that need banner updates
+        window.dispatchEvent(new CustomEvent('profile-updated', { 
+          detail: { 
+            userId,
+            banner: newBanner
+          } 
+        }));
       }
-      
-      console.log('Profile updated successfully');
     },
     onError: (error: any) => {
-      console.error('Failed to update profile', error.message || 'Unknown error');
+      console.error('Failed to update profile', error);
     },
   });
+  
+  // Function to directly manipulate localStorage
+  const updateManuallyLocalStorage = (updatedUser: any) => {
+    try {
+      // Get the current localStorage data
+      const appStorage = localStorage.getItem('app-storage');
+      
+      if (appStorage) {
+        // Parse the current data
+        const storageData = JSON.parse(appStorage);
+        
+        // Update the user in the localStorage data
+        if (storageData.state && storageData.state.user) {
+          // Make a completely new object to avoid reference issues
+          storageData.state.user = { ...updatedUser };
+          
+          // Save the updated data back to localStorage
+          const stringifiedData = JSON.stringify(storageData);
+          localStorage.setItem('app-storage', stringifiedData);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating localStorage', error);
+    }
+  };
 
   return {
     profile: data,

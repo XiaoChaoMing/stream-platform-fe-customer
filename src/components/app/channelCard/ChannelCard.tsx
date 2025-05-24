@@ -48,8 +48,8 @@ const ChannelCard = ({
               </Avatar>
               {!isCollapsed && (
                 <div className="flex flex-col items-start justify-center">
-                  <h1 className="font-medium max-w-[110px] overflow-hidden text-ellipsis whitespace-nowrap">{username}</h1>
-                  <h1 className="w-36 overflow-hidden text-ellipsis whitespace-nowrap text-[var(--muted-foreground)]">
+                  <h1 className="font-medium max-w-[110px] overflow-hidden text-ellipsis whitespace-nowrap ">{username}</h1>
+                  <h1 className="w-36 overflow-hidden text-ellipsis whitespace-nowrap text-[var(--muted-foreground)] text-start">
                     {detail}
                   </h1>
                 </div>
@@ -57,8 +57,10 @@ const ChannelCard = ({
             </div>
             {!isCollapsed && (
               <div className="flex flex-row items-center justify-center gap-2">
-                {isLive && (
+                {isLive?(
                   <div className="h-2 w-2 rounded-full bg-red-400"></div>
+                ):(
+                  <div className="h-2 w-2 rounded-full bg-gray-400"></div>
                 )}
                 {viewCount > 0 && <div>{viewCount.toLocaleString()}</div>}
               </div>

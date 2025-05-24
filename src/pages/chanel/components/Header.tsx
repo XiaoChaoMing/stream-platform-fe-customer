@@ -1,47 +1,24 @@
 import { NavLink, useParams } from "react-router-dom";
 import { useChannelStore } from "@/store/slices/channelSlice";
 import { Button } from "@/components/ui/button";
-import { Bell, Radio, Share2, UserPen } from "lucide-react";
+import { Bell, Share2 } from "lucide-react";
 import { useChannelQuery } from "@/hooks/useChannelQuery";
 import { useTranslation } from "react-i18next";
 import { memo, useEffect } from "react";
 import blankAvt from "@/assets/blank-avt.avif";
 import { EditModal } from "./EditModal";
-
+import { useStore } from "@/store/useStore";
+import { GoLiveModal } from "./GoLiveModal";
+import { EndLiveDialog } from "./EndLiveDialog";
+import { useChannelFollow } from "@/hooks/useChannelFollow";
+import { useLivestreamByUserQuery } from "@/hooks/useLivestreamQuery";
+import { CreateLivestreamModal } from "./CreateLivestreamModal";
+import { Image } from "@/components/app/image/Image";
 const Header = memo(() => {
   const { username } = useParams<{ username: string }>();
   const { t } = useTranslation();
+  const { user } = useStore();
   
-  // Use React Query hook to fetch channel data
-  const { 
-    data: channelData, 
-    isLoading, 
-    followChannel, 
-    unfollowChannel,
-    isFollowingLoading
-  } = useChannelQuery(username);
-  
-  const { 
-    isFollowing,
-    toggleFollow,
-    isOwnChannel
-  } = useChannelStore();
-
-  // Handle follow/unfollow actions
-  const handleFollowToggle = () => {
-    if (isFollowingLoading) return;
-    
-    // Toggle state in Zustand store
-    toggleFollow();
-    
-    // Call API via React Query mutation
-    if (isFollowing) {
-      unfollowChannel(channelData?.id || '');
-    } else {
-      followChannel(channelData?.id || '');
-    }
-  };
-
   const baseUrl = `/channel/${username}`;
   
   // Define navigation items for the channel
@@ -52,12 +29,39 @@ const Header = memo(() => {
     { label: t('schedule'), path: "/schedule" },
   ];
 
-  // Log to verify component is not re-rendering unnecessarily
-  useEffect(() => {
-  
-  }, []);
+  const { 
+    data: channelData, 
+    isLoading,
+    refetch
+  } = useChannelQuery(username);
 
-  if (isLoading) {
+  // Check if user has livestream profile
+  const {
+    hasActiveLivestream,
+    isLoadingUserLivestreams
+  } = useLivestreamByUserQuery(
+    channelData?.id ? Number(channelData.id) : undefined
+  );
+
+  // Use the new follow functionality
+  const {
+    isSubscribed,
+    followerCount,
+    isLoading: isFollowLoading,
+    toggleSubscription
+  } = useChannelFollow(
+    channelData?.id ? Number(channelData.id) : undefined
+  );
+  
+  const { isOwnChannel } = useChannelStore();
+
+  useEffect(() => {
+    if (isOwnChannel && user) {
+      refetch();
+    }
+  }, [user, isOwnChannel, refetch]);
+
+  if (isLoading || isLoadingUserLivestreams) {
     return (
       <div className="w-full space-y-4">
         <div className="h-48 bg-secondary animate-pulse rounded-md"></div>
@@ -67,25 +71,25 @@ const Header = memo(() => {
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col h-fit">
       {/* Channel banner */}
-      <div className="relative mb-20">
+      <div className="relative sm:mb-20 mb-10">
         {/* Profile section positioned over banner */}
-        <div className="absolute -bottom-14 left-0 right-0 px-4">
+        <div className="sm:absolute -bottom-14 left-0 right-0 px-4 block">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end">
             {/* Left side: Profile image and info */}
             <div className="flex items-end">
               <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-muted bg-transparent shadow-lg">
-                <img 
-                  src={channelData?.avatar || blankAvt} 
+                <Image
+                  src={channelData?.avatar || blankAvt}
                   alt={channelData?.displayName}
-                  className="w-full h-full object-cover"
+                  containerClassName="w-full h-full object-cover"
                 />
               </div>
               
               <div className="ml-4 mb-1">
                 <h1 className="text-xl md:text-2xl font-bold text-foreground">{channelData?.displayName}</h1>
-                <p className="text-muted-foreground text-sm text-start">{channelData?.followers} {t('followers')}</p>
+                <p className="text-muted-foreground text-sm text-start">{followerCount || channelData?.followers_count || 0} {t('followers')}</p>
               </div>
             </div>
             
@@ -95,13 +99,13 @@ const Header = memo(() => {
               {!isOwnChannel && (
                 <div className="flex items-center gap-2">
                   <Button 
-                    className={`px-6 py-2 rounded-md ${isFollowing 
+                    className={`px-6 py-2 rounded-md ${isSubscribed 
                       ? 'bg-secondary hover:bg-secondary/90 text-foreground' 
                       : 'bg-purple-500 hover:bg-purple-600 text-white'}`}
-                    onClick={handleFollowToggle}
-                    disabled={isFollowingLoading}
+                    onClick={toggleSubscription}
+                    disabled={isFollowLoading}
                   >
-                    {isFollowing ? t('Unfollow') : t('Follow')}
+                    {isSubscribed ? t('Unfollow') : t('Follow')}
                   </Button>
                   
                   {/* Bell notification */}
@@ -127,14 +131,22 @@ const Header = memo(() => {
               {/* Settings button (only for channel owner) */}
               {isOwnChannel && (
                 <div className="flex items-center gap-2">
-                  <Button 
-                    variant="ghost" 
-                    className="ml-2 bg-purple-500 hover:bg-purple-600 text-white"
-                    title={t('Go Live')}
-                  >
-                    <Radio className="h-4 w-4 mr-2" />
-                    {t('Go Live')}
-                  </Button>
+                  {!channelData?.livestream || channelData.livestream.status !== 'live' ? (
+                    hasActiveLivestream ? (
+                      <GoLiveModal streamId={channelData?.livestream?.stream_id.toString() || "999"}/>
+                    ) : (
+                      <CreateLivestreamModal userId={Number(channelData?.id)} onSuccess={refetch} />
+                    )
+                  ) : (
+                    <EndLiveDialog 
+                      streamData={{
+                        id: channelData.livestream.stream_id.toString(),
+                        title: channelData.livestream.title,
+                        description: channelData.livestream.description,
+                        stream_url: channelData.livestream.stream_url
+                      }} 
+                    />
+                  )}
                   <EditModal profileId={channelData?.id || ''} />
                 </div>
               )}
@@ -144,7 +156,7 @@ const Header = memo(() => {
       </div>
       
       {/* Navigation bar */}
-      <div className="flex items-center border-b border-border pb-1 mt-4">
+      <div className="sm:flex block items-center border-b border-border pb-1 sm:mt-4 mt-0 overflow-x-auto">
         {navItems.map(item => (
           <NavLink
             key={item.label}

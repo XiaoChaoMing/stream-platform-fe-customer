@@ -1,20 +1,61 @@
 import HLSPlayer from "@/components/app/video/hls-stream-video";
 import { Button } from "@/components/ui/button";
 import { useChannelQuery } from "@/hooks/useChannelQuery";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { VideoChat } from "@/pages/video/components/VideoChat";
-import { Unplug } from "lucide-react";
+import { StreamChat } from "@/pages/chanel/components/VideoChat";
+import {  Unplug, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useSocket } from "@/components/base/socketContext/SocketContext";
+import VideoCard from "@/components/app/streamCard/VideoCard";
 
 export default function Home() {
   const { username } = useParams<{ username: string }>();
   const { t } = useTranslation();
+  const { socket } = useSocket();
+  const [viewCount, setViewCount] = useState<number>(0);
+  const navigate = useNavigate();
+  const recentVideosLimit = 4; // Limit to 4 recent videos for the home page
   
-  // Use React Query hook to fetch channel data
+  const navigateToVideo = (videoId: string | number) => {
+    navigate(`/video/${videoId}`);
+  };
+  
   const { 
     data: channelData, 
     isLoading, 
-  } = useChannelQuery(username);
+    videos,
+    videosLoading
+  } = useChannelQuery(username, { limit: recentVideosLimit, page: 1 });
+
+  useEffect(() => {
+    if (!socket || !channelData?.livestream?.stream_id) return;
+
+    const handleViewerCount = (data: { streamId: string; count: number }) => {
+      if (data.streamId.toString() === channelData.livestream?.stream_id.toString()) {
+        setViewCount(data.count);
+      }
+    };
+
+    const handleError = (error: { message: string; status: number }) => {
+      console.error('Error getting viewer count:', error.message);
+    };
+
+    // Initial request for viewer count
+    if (channelData.livestream.status === 'live') {
+      socket.emit('getViewerCount', channelData.livestream.stream_id.toString());
+    }
+
+    // Listen for viewer count updates and errors
+    socket.on('viewerCountUpdated', handleViewerCount);
+    socket.on('streamError', handleError);
+
+    return () => {
+      socket.off('viewerCountUpdated', handleViewerCount);
+      socket.off('streamError', handleError);
+    };
+}, [socket, channelData?.livestream]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -30,45 +71,50 @@ export default function Home() {
         <div className="w-full md:w-2/3">
           {/* Live Stream or Featured Video */}
           <div className="bg-card rounded-md overflow-hidden">
-            {channelData?.is_live ? (
+            {channelData?.livestream?.status === "live" ? (
               <div className="relative">
                 <div className="absolute top-3 left-3 bg-red-500 text-white text-xs py-1 px-2 rounded z-10 flex items-center">
                   <span className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></span>
                   LIVE
                 </div>
-                <HLSPlayer src={`${import.meta.env.VITE_STREAM_URL}test.m3u8`} />
+                <HLSPlayer src={channelData.livestream.stream_url} />
               </div>
             ) : (
               <div className="relative aspect-video bg-secondary flex items-center justify-center">
                 <div className="text-foreground text-lg">
-                  {channelData?.displayName} <Unplug />
+                  <Unplug />
                 </div>
               </div>
             )}
           </div>
           
           {/* Stream Info */}
-          <div className="mt-4">
+          <div className="mt-4 flex flex-row justify-between">
+            <div className="flex flex-col gap-2">
             <h2 className="text-foreground text-xl font-semibold text-start">
-              {channelData?.is_live ? 
-                `${t('channel.streamInfo')} ${channelData?.category}` : 
+              {channelData?.livestream?.status === 'live' ? 
+                `${t('Live: ')} ${channelData.livestream.title}` : 
                 t('channel.channelOffline')
               }
             </h2>
+            <h2 className="text-muted-foreground mt-1 text-start">
+              {channelData?.livestream?.status === 'live' ? 
+                channelData.livestream.description : 
+                t('channel.channelOffline')
+              }
+            </h2>
+            </div>
             <div className="text-muted-foreground mt-1 text-start">
-              {channelData?.is_live ? 
-                `${Math.floor(Math.random() * 10000).toLocaleString()} ${t('channel.viewers')}` : 
-                `${t('channel.lastLive')} ${Math.floor(Math.random() * 7) + 1} ${t('channel.daysAgo')}`
+              {channelData?.livestream?.status === 'live' ? 
+                <h1 className="flex flex-row gap-2 items-center text-red-400">${viewCount.toLocaleString()} ${t('viewers')} <User /></h1>: 
+                `${t('lastLive')} ${Math.floor(Math.random() * 7) + 1} ${t('daysAgo')}`
               }
             </div>
           </div>
         </div>
         
-        <div className="w-full md:w-1/3 border border-neutral-800 rounded-md">
-          {/* About the Channel */}
-          <div className="bg-card rounded-md p-4 h-full">
-          <VideoChat videoId={"test"} />
-          </div>
+        <div className="w-full md:w-1/3 h-[600px] border border-neutral-800 rounded-md overflow-hidden">
+          <StreamChat streamId={channelData?.livestream?.stream_id || 0} />
         </div>
       </div>
       
@@ -76,32 +122,27 @@ export default function Home() {
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-foreground text-xl font-semibold">{t('channel.recentVideos')}</h3>
-          <Button variant="link" className="text-secondary-foreground hover:text-purple-500">{t('channel.viewAll')}</Button>
+          <Button variant="link" onClick={() => navigate(`/channel/${username}/videos`)} className="text-secondary-foreground hover:text-purple-500 cursor-pointer">
+            {t('viewAll')}
+          </Button>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {channelData?.videos.slice(0, 4).map(video => (
-            <div key={video.id} className="bg-card rounded-md overflow-hidden cursor-pointer transition-transform hover:translate-y-[-4px]">
-              <div className="relative">
-                <img 
-                  src={video.thumbnailUrl} 
-                  alt={video.title}
-                  className="w-full aspect-video object-cover"
-                />
-                <div className="absolute bottom-2 right-2 bg-secondary/80 text-secondary-foreground px-1 rounded text-xs py-0.5">
-                  {video.duration}
-                </div>
-              </div>
-              <div className="p-3">
-                <h4 className="text-foreground text-sm font-medium line-clamp-2">{video.title}</h4>
-                <div className="flex justify-between text-muted-foreground text-xs mt-1">
-                  <span>{video.views.toLocaleString()} {t('channel.views')}</span>
-                  <span>{video.createdAt}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        {videosLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent"></div>
+          </div>
+        ) : videos && videos.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {videos.map(video => (
+              <VideoCard onClick={() => navigateToVideo(video.video_id)} key={video.video_id} video={video} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-10">
+            <h3 className="text-foreground text-lg">No videos found</h3>
+            <p className="text-muted-foreground mt-2">This channel hasn't uploaded any videos yet.</p>
+          </div>
+        )}
       </div>
     </div>
   );

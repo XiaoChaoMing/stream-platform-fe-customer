@@ -3,9 +3,11 @@ import { channelService } from '@/services/app/channel';
 import { useChannelStore } from '@/store/slices/channelSlice';
 import { useEffect } from 'react';
 import { useStore } from '@/store/useStore';
+import { IPaginationParams } from './useVideoQuery';
 
-export const useChannelQuery = (username?: string) => {
+export const useChannelQuery = (username?: string, paginationParams?: IPaginationParams) => {
   const { user: currentUser } = useStore();
+  const { limit, page } = paginationParams || {};
   
   const queryClient = useQueryClient();
   const { 
@@ -41,15 +43,17 @@ export const useChannelQuery = (username?: string) => {
     }
   });
 
-  // Get channel videos
+  // Get channel videos with pagination support
   const { data: videos, isLoading: videosLoading } = useQuery({
-    queryKey: ['channelVideos', data?.id],
-    queryFn: () => channelService.getChannelVideos(data?.id || ''),
+    queryKey: ['channelVideos', data?.id, limit, page],
+    queryFn: async () => {
+      const videos = await channelService.getChannelVideos(data?.id || '', limit, page);
+      return videos;
+    },
     enabled: !!data?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Update Zustand store with data from React Query
   useEffect(() => {
     setLoading(isLoading);
     
@@ -64,8 +68,8 @@ export const useChannelQuery = (username?: string) => {
         displayName: data.profile?.name || data.username,
         profileImage: data.avatar || '',
         bannerImage: data.profile?.banner_url || '',
-        followers: '0', // This would come from a separate API call
-        isPartner: false, // Based on role perhaps
+        followers: '0',
+        isPartner: false, 
         isAffiliate: false,
         socialLinks: data.profile?.social_links || {},
         panels: [],
@@ -80,7 +84,6 @@ export const useChannelQuery = (username?: string) => {
         createdAt: '',
         updatedAt: ''
       };
-      
       setChannel(detailedChannel);
       
       // Check if the user is viewing their own channel

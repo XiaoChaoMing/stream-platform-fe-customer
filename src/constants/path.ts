@@ -8,5 +8,6 @@ export const PATH = {
   SOCKET_DEMO: "/socket-demo",
   WATCHING: "/watching",
   FOLLOWING: "/following",
-  VIDEO: "/video/:id"
+  VIDEO: "/video/:id",
+  PROFILE: "/profile"
 };

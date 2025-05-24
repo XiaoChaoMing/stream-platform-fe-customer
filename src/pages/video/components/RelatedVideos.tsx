@@ -1,121 +1,140 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
+import React, { useEffect, useState } from 'react';
+import { useVideoQuery, IPaginationParams } from '@/hooks/useVideoQuery';
+import VideoCard from '@/components/app/streamCard/VideoCard';
+import { useInView } from 'react-intersection-observer';
 
 interface RelatedVideosProps {
   currentVideoId: string;
 }
 
-interface VideoItem {
-  id: string;
-  title: string;
-  views: number;
-  createdAt: string;
-  thumbnailUrl: string;
-  duration: string;
-  channelName: string;
-  channelAvatar: string;
-}
 
-// Mock related videos data
-const mockRelatedVideos: VideoItem[] = [
-  {
-    id: 'AliveFlyWow-KEVWDJlK7Q8KpkFG',
-    title: 'Amazing play during tournament',
-    views: 12435,
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    thumbnailUrl: 'https://static-cdn.jtvnw.net/cf_vods/d2nvs31859zcd8/c9ad3c31d55b4e1c962b_nhatminh1498_39910371785_1708812115/thumb/custom-cb9f2c54-d80f-45c4-9a39-70a11abe9763-320x180.jpeg',
-    duration: '0:42',
-    channelName: 'ProGamer123',
-    channelAvatar: 'https://static-cdn.jtvnw.net/user-default-pictures-uv/cdd517fe-def4-11e9-948e-784f43822e80-profile_image-50x50.png'
-  },
-  {
-    id: 'BriskActiveOctopus-3QzG5DRGJkAZ',
-    title: 'How to win every time with this simple trick',
-    views: 7825,
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    thumbnailUrl: 'https://static-cdn.jtvnw.net/cf_vods/d2nvs31859zcd8/fcd1b5fab675f8d37b25_nhatminh1498_39919231753_1708902605/thumb/custom-aa34b200-10a3-4c4f-b9ad-998bbcde7ae5-320x180.jpeg',
-    duration: '1:05',
-    channelName: 'GameMaster',
-    channelAvatar: 'https://static-cdn.jtvnw.net/user-default-pictures-uv/ebe4cd89-b4f4-4cd9-adac-2f30151b4209-profile_image-50x50.png'
-  },
-  {
-    id: 'CrispyDeliciousPasta-7JkPQO9Fm2',
-    title: 'Speedrun world record attempt',
-    views: 42105,
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    thumbnailUrl: 'https://static-cdn.jtvnw.net/cf_vods/d2nvs31859zcd8/fcd1b5fab675f8d37b25_nhatminh1498_39919231753_1708902605/thumb/custom-aa34b200-10a3-4c4f-b9ad-998bbcde7ae5-320x180.jpeg',
-    duration: '0:58',
-    channelName: 'SpeedRunner',
-    channelAvatar: 'https://static-cdn.jtvnw.net/user-default-pictures-uv/ead5c8b2-a4c9-4724-b1c9-9f9880bb9b38-profile_image-50x50.png'
-  },
-  {
-    id: 'EnergeticHappyKoala-9KqZ2wP',
-    title: 'Best clutch of the year',
-    views: 31654,
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    thumbnailUrl: 'https://static-cdn.jtvnw.net/cf_vods/d2nvs31859zcd8/c9ad3c31d55b4e1c962b_nhatminh1498_39910371785_1708812115/thumb/custom-cb9f2c54-d80f-45c4-9a39-70a11abe9763-320x180.jpeg',
-    duration: '0:37',
-    channelName: 'ClutchMaster',
-    channelAvatar: 'https://static-cdn.jtvnw.net/user-default-pictures-uv/75305d54-c7cc-40d1-bb9c-91fbe85943c7-profile_image-50x50.png'
-  }
-];
+const RELATED_VIDEOS_LIMIT = 5;
 
 export const RelatedVideos: React.FC<RelatedVideosProps> = ({ currentVideoId }) => {
-  // Filter out the current video if it's in the related videos array
-  const filteredVideos = mockRelatedVideos.filter(video => video.id !== currentVideoId);
+  // State for pagination
+  const [page, setPage] = useState<number>(1);
+  const [hasMore, setHasMore] = useState<boolean>(true);
   
-  // Format view count
-  const formatViews = (count: number): string => {
-    if (count < 1000) return count.toString();
-    if (count < 1000000) return `${(count / 1000).toFixed(1)}K`;
-    return `${(count / 1000000).toFixed(1)}M`;
+  // Set up pagination params
+  const paginationParams: IPaginationParams = {
+    limit: RELATED_VIDEOS_LIMIT * 2, 
+    page: page
   };
+  
+  const { allVideos, isLoadingAllVideos, allVideosError } = useVideoQuery(paginationParams);
+  
+  // Store filtered videos
+  const [filteredVideos, setFilteredVideos] = useState<any[]>([]);
+  
+  // Setup intersection observer
+  const { ref, inView } = useInView({
+    threshold: 0,
+    rootMargin: '100px', 
+    triggerOnce: false,
+  });
+  
+  // Check for empty response or errors and update hasMore accordingly
+  useEffect(() => {
+    if (allVideosError || (allVideos && allVideos.length === 0)) {
+      setHasMore(false);
+    }
+  }, [allVideos, allVideosError]);
+  
+  // Load more videos when the last element is in view
+  useEffect(() => {
+    if (inView && hasMore && !isLoadingAllVideos) {
+      setPage(prevPage => prevPage + 1);
+    }
+  }, [inView, hasMore, isLoadingAllVideos]);
+  
+  // Process and filter videos when data changes
+  useEffect(() => {
+    if (allVideos && allVideos.length > 0) {
+      // Filter out the current video and transform data for VideoCard
+      const filtered = allVideos
+        .filter(video => video.video_id.toString() !== currentVideoId)
+        .map(video => ({
+          video_id: video.video_id,
+          thumbnailUrl: video.thumbnail_url || '',
+          title: video.title,
+          duration: video.duration?.toString() || '0:00',
+          username: video.user?.username || 'Unknown User',
+          views: video.view_count || 0,
+          createdAt: video.created_at
+        }));
+      
+      // If we received fewer items than requested, there are no more items to load
+      if (filtered.length < RELATED_VIDEOS_LIMIT) {
+        setHasMore(false);
+      }
+      
+      // Append new videos to existing filtered videos
+      if (page === 1) {
+        setFilteredVideos(filtered.slice(0, RELATED_VIDEOS_LIMIT));
+      } else {
+        setFilteredVideos(prevVideos => {
+          // Combine previous videos with new ones, removing duplicates
+          const newVideos = [...prevVideos];
+          filtered.forEach(video => {
+            const exists = newVideos.some(v => v.video_id === video.video_id);
+            if (!exists) {
+              newVideos.push(video);
+            }
+          });
+          return newVideos;
+        });
+      }
+    }
+  }, [allVideos, currentVideoId, page]);
+  
+  // Navigate to video details when a video is clicked
+  const handleVideoClick = (videoId: string) => {
+    window.location.href = `/video/${videoId}`;
+  };
+  console.log(filteredVideos);
 
   return (
-    <div className="related-videos">
-      <div className="p-3 border-b border-neutral-800">
-        <h3 className="font-medium text-lg">Related Clips</h3>
-      </div>
+    <div className="related-videos p-4">
+      <h3 className="text-lg font-medium mb-4 text-start">Related Videos</h3>
       
-      <div className="p-3 space-y-4">
-        {filteredVideos.map(video => (
-          <Link 
-            key={video.id} 
-            to={`/video/${video.id}`} 
-            className="flex gap-3 group"
-          >
-            {/* Thumbnail with duration */}
-            <div className="relative flex-shrink-0 w-32 h-18 bg-neutral-800 rounded overflow-hidden">
-              <img 
-                src={video.thumbnailUrl} 
-                alt={video.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+      {filteredVideos.length > 0 ? (
+        <div className="space-y-4">
+          {filteredVideos.map((video, index) => (
+            <div 
+              key={video.video_id} 
+              onClick={() => handleVideoClick(video.video_id)}
+              ref={index === filteredVideos.length - 1 ? ref : undefined}
+            >
+              <VideoCard 
+                video={video}
+                variant="sm"
               />
-              <span className="absolute bottom-1 right-1 bg-black bg-opacity-70 text-white text-xs px-1 rounded">
-                {video.duration}
-              </span>
             </div>
-            
-            {/* Video details */}
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors text-start">
-                {video.title}
-              </h4>
-              
-              <div className="mt-1 flex items-center text-xs text-neutral-400">
-                <span>{video.channelName}</span>
-              </div>
-              
-              <div className="mt-1 flex items-center text-xs text-neutral-400">
-                <span>{formatViews(video.views)} views</span>
-                <span className="mx-1">•</span>
-                <span>{formatDistanceToNow(new Date(video.createdAt), { addSuffix: true })}</span>
-              </div>
+          ))}
+          
+          {/* Loading indicator */}
+          {isLoadingAllVideos && hasMore && (
+            <div className="flex justify-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-accent"></div>
             </div>
-          </Link>
-        ))}
-      </div>
+          )}
+          
+          {/* End of content message */}
+          {!hasMore && filteredVideos.length > 0 && (
+            <div className="text-center py-2 text-sm text-muted-foreground">
+              No more videos to load
+            </div>
+          )}
+        </div>
+      ) : isLoadingAllVideos ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent"></div>
+        </div>
+      ) : (
+        <div className="text-center py-6 text-muted-foreground">
+          No related videos found
+        </div>
+      )}
     </div>
   );
 }; 

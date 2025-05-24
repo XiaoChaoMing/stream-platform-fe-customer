@@ -62,4 +62,4 @@ export function syncStoreWithStorage(state: any): void {
   } catch (error) {
     console.error('Error syncing with localStorage:', error);
   }
-} 
+}

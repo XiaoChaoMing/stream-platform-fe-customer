@@ -26,10 +26,20 @@ export interface IChannel {
   email: string;
   avatar: string | null;
   role_id: number;
-  stream_link?: string | null;
   thumbnail_url?: string | null;
   donates_link?: string | null;
-  
+  livestream?: {
+    stream_id: number;
+    user_id: number;
+    title: string;
+    description: string;
+    stream_url: string;
+    view_count: number;
+    thumbnail_url: string | null;
+    start_time: string;
+    end_time: string | null;
+    status: string;
+  }
   // Profile related fields
   profile?: {
     name: string;
@@ -39,7 +49,7 @@ export interface IChannel {
   };
   
   // Additional fields for the application context
-  is_live?: boolean;
+
   tags?: string[];
 }
 
@@ -56,6 +66,17 @@ export const DefaultChannel: IChannel = {
     banner_url: null,
     social_links: {}
   },
-  is_live: false,
+  livestream: {
+    stream_id: 1,
+    user_id: 3,
+    title: "test",
+    description: "stream",
+    stream_url: "https://hls.streamify.id.vn/hls/live/Ip5pPBIZ89JW.m3u8",
+    view_count: 0,
+    thumbnail_url: null,
+    start_time: "2024-03-26T10:00:00.000Z",
+    end_time: null,
+    status: "live"
+  },
   tags: []
 };

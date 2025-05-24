@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { IChannel, DefaultChannel } from '@/types/app/Ichannel.type';
 
 export interface VideoData {
-  id: string;
+  video_id: string;
   title: string;
   thumbnailUrl: string;
   duration: string;
@@ -37,7 +37,7 @@ export interface IChannelDetailed extends IChannel {
   displayName: string;
   profileImage: string;
   bannerImage: string;
-  followers: string;
+  followers_count: number;
   isPartner: boolean;
   isAffiliate: boolean;
   socialLinks: ISocialLinks;
@@ -54,7 +54,7 @@ export const DefaultChannelDetailed: IChannelDetailed = {
   displayName: '',
   profileImage: '',
   bannerImage: '',
-  followers: '0',
+  followers_count: 0,
   isPartner: false,
   isAffiliate: false,
   socialLinks: {},

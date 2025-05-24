@@ -1,6 +1,7 @@
 import { IChannelDetailed } from '@/store/slices/channelSlice';
 import { BaseService } from '@/services/base/base';
 import { IChannel } from "@/types/app/Ichannel.type";
+import { AxiosRequestConfig } from 'axios';
 
 class ChannelService extends BaseService {
   // Get channel by ID
@@ -8,7 +9,6 @@ class ChannelService extends BaseService {
     try {
       return await this.get<IChannel>(`/users/${channelId}`);
     } catch (error) {
-      console.error("Error fetching channel:", error);
       return null;
     }
   }
@@ -25,7 +25,7 @@ class ChannelService extends BaseService {
         displayName: channelData.profile?.name || channelData.username,
         profileImage: channelData.avatar || '',
         bannerImage: channelData.profile?.banner_url || '',
-        followers: '0', // This would come from a separate API call in a real implementation
+        followers_count: channelData.followers_count || 0, // This would come from a separate API call in a real implementation
         isPartner: false, // This would be determined based on role or other data
         isAffiliate: false, // This would be determined based on role or other data
         socialLinks: channelData.profile?.social_links || {},
@@ -42,7 +42,6 @@ class ChannelService extends BaseService {
         updatedAt: ''
       };
     } catch (error) {
-      console.error('Error fetching channel:', error);
       throw error;
     }
   }
@@ -52,7 +51,6 @@ class ChannelService extends BaseService {
     try {
       return await this.get<IChannel>(`/users/getChannelByUserName/${username}`);
     } catch (error) {
-      console.error("Error fetching channel:", error);
       return null;
     }
   }
@@ -62,7 +60,6 @@ class ChannelService extends BaseService {
     try {
       return await this.get<IChannel[]>('/users/channels');
     } catch (error) {
-      console.error("Error fetching all channels:", error);
       return [];
     }
   }
@@ -72,7 +69,6 @@ class ChannelService extends BaseService {
     try {
       return await this.get<IChannel[]>(`/users/recommendedChannels?userId=${userId}&limit=10`);
     } catch (error) {
-      console.error("Error fetching recommended channels:", error);
       return [];
     }
   }
@@ -83,7 +79,6 @@ class ChannelService extends BaseService {
       await this.post('/subscriptions/follow', { channelId });
       return true;
     } catch (error) {
-      console.error('Error following channel:', error);
       throw error;
     }
   }
@@ -100,20 +95,35 @@ class ChannelService extends BaseService {
   }
   
   // Get channel videos
-  async getChannelVideos(channelId: string): Promise<any[]> {
+  async getChannelVideos(channelId: string, limit?: number, page?: number): Promise<any[]> {
     try {
-      const videos = await this.get<any[]>(`/videos/channel/${channelId}`);
+      // Use query config parameter instead of building URL manually
+      const config: AxiosRequestConfig = {
+        params: {
+          ...(limit !== undefined && { limit }),
+          ...(page !== undefined && { page })
+        }
+      };
+      
+      // Make the API call with proper query parameters
+      const url = `/videos/user/${channelId}`;
+      const videos = await this.get<any[]>(url, config);
+      
+      // Return empty array if no videos
+      if (!Array.isArray(videos)) return [];
+      
+      // Transform the response
       return videos.map((video: any) => ({
-        id: video.id,
+        video_id: video.video_id,
         title: video.title,
+        username: video.user?.username || '',
         thumbnailUrl: video.thumbnail_url || '',
         duration: video.duration || '0:00',
         views: video.view_count || 0,
-        createdAt: new Date(video.created_at).toLocaleDateString(),
+        createdAt: video.created_at || '',
         type: video.type || 'vod'
       }));
     } catch (error) {
-      console.error('Error fetching channel videos:', error);
       return [];
     }
   }

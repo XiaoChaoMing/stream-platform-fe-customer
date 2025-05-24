@@ -59,12 +59,6 @@ const FollowingDetail = () => {
             Videos
           </TabsTrigger>
           <TabsTrigger
-            value="categories"
-            className="cursor-pointer relative bg-transparent after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:scale-x-0 after:bg-[var(--chart-4)] after:transition-transform data-[state=active]:after:scale-x-100"
-          >
-            Categories
-          </TabsTrigger>
-          <TabsTrigger
             value="channels"
             className="cursor-pointer relative bg-transparent after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:scale-x-0 after:bg-[var(--chart-4)] after:transition-transform data-[state=active]:after:scale-x-100"
           >

@@ -11,14 +11,18 @@ export interface AppSlice {
 }
 
 export const createAppSlice = (set: any): AppSlice => ({
-  theme: "dark",
+  theme: "light",
   sidebarOpen: true,
   notifications: 0,
 
   toggleTheme: () =>
-    set((state: AppSlice) => ({
-      theme: state.theme === "light" ? "dark" : "light"
-    })),
+    set((state: AppSlice) => {
+      const newTheme = state.theme === "light" ? "dark" : "light";
+      if (newTheme !== state.theme) {
+        return { theme: newTheme };
+      }
+      return {};
+    }),
   toggleSidebar: () =>
     set((state: AppSlice) => ({ sidebarOpen: !state.sidebarOpen })),
   setNotifications: (count) => set({ notifications: count }),

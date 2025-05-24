@@ -8,7 +8,6 @@ const FollowingDetail = lazy(() => import("@/pages/following/components/followin
 const Overview = lazy(() => import("@/pages/following/pages/Overview"));
 const Live = lazy(() => import("@/pages/following/pages/Live"));
 const Video = lazy(() => import("@/pages/following/pages/Video"));
-const Category = lazy(() => import("@/pages/following/pages/Category"));
 const Channel = lazy(() => import("@/pages/following/pages/Channel"));
 
 export const followingRoutes = [
@@ -52,14 +51,6 @@ export const followingRoutes = [
                 element: (
                   <Suspense fallback={<Loading />}>
                     <Video />
-                  </Suspense>
-                )
-              },
-              {
-                path: "categories",
-                element: (
-                  <Suspense fallback={<Loading />}>
-                    <Category />
                   </Suspense>
                 )
               },

@@ -1,27 +1,158 @@
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useChannelStore } from "@/store/slices/channelSlice";
 import { Button } from "@/components/ui/button";
-import { Edit3, PlusCircle } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import { useChannelQuery } from "@/hooks/useChannelQuery";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { UploadVideoModal } from "@/components/app/video/UploadVideoModal";
+import VideoCard from "@/components/app/streamCard/VideoCard";
+import { useInView } from 'react-intersection-observer';
 
 export default function Video() {
   const { username } = useParams<{ username: string }>();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const videosPerPage = 8; 
+  const [allVideos, setAllVideos] = useState<any[]>([]);
+  const [hasMore, setHasMore] = useState(true);
   
-  // Initialize the query but without triggering data fetch as it will be handled by the parent Channel component
-  const {videosLoading } = useChannelQuery(username);
+  const { ref: loadMoreRef, inView } = useInView({
+    threshold: 0,
+    rootMargin: '100px', 
+  });
   
-  // Get data from Zustand store
+  const { videosLoading, refetch: refetchChannelData, videos } = useChannelQuery(
+    username, 
+    useMemo(() => ({ limit: videosPerPage, page: currentPage }), [currentPage, videosPerPage])
+  );
+
   const { 
-    currentChannel: channelData, 
     isLoading, 
     isOwnChannel 
   } = useChannelStore();
 
-  if (isLoading || videosLoading) {
+  useEffect(() => {
+    if (!videos) return;
+    
+    if (videos.length > 0) {
+      setAllVideos(prev => {
+        const newVideos = videos.filter(
+          newVideo => !prev.some(existingVideo => existingVideo.video_id === newVideo.video_id)
+        );
+        
+        if (newVideos.length === 0) return prev;
+        
+        return [...prev, ...newVideos];
+      });
+      
+      setHasMore(videos.length >= videosPerPage);
+    } else if (videos.length === 0 && currentPage === 1) {
+      setAllVideos([]);
+      setHasMore(false);
+    }
+  }, [videos, currentPage]);
+
+  useEffect(() => {
+    if (inView && hasMore && !videosLoading) {
+      setCurrentPage(prev => prev + 1);
+    }
+  }, [inView, hasMore, videosLoading]);
+
+  const handleVideoUploadSuccess = useCallback(() => {
+    setCurrentPage(1);
+    setAllVideos([]);
+    setHasMore(true);
+    refetchChannelData();
+  }, [refetchChannelData]);
+
+  const navigateToVideo = useCallback((videoId: string | number) => {
+    navigate(`/video/${videoId}`);
+  }, [navigate]);
+  
+  if (isLoading) {
     return <div className="text-foreground p-4">Loading videos...</div>;
   }
+  
+  const uploadButton = useMemo(() => 
+    isOwnChannel && (
+      <UploadVideoModal 
+        triggerButton={
+          <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+            <PlusCircle className="h-4 w-4 mr-2" />
+            {t('Upload Video')}
+          </Button>
+        }
+        onSuccess={handleVideoUploadSuccess}
+      />
+    )
+  , [isOwnChannel, handleVideoUploadSuccess, t]);
+
+  const categoryButtons = useMemo(() => (
+    <div className="flex overflow-x-auto mb-4 space-x-2">
+      <Button className="bg-accent hover:bg-accent/90 text-accent-foreground whitespace-nowrap">All Videos</Button>
+      <Button variant="ghost" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground whitespace-nowrap">Recent Broadcasts</Button>
+      <Button variant="ghost" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground whitespace-nowrap">Clips</Button>
+      <Button variant="ghost" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground whitespace-nowrap">Highlights</Button>
+      <Button variant="ghost" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground whitespace-nowrap">Collections</Button>
+      {isOwnChannel && (
+        <Button variant="ghost" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground whitespace-nowrap">
+          <PlusCircle className="h-4 w-4 mr-2" />
+          New Collection
+        </Button>
+      )}
+    </div>
+  ), [isOwnChannel]);
+
+  const videoGrid = useMemo(() => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {allVideos.map(video => (
+        <VideoCard 
+          onClick={() => navigateToVideo(video.video_id)} 
+          key={video.video_id} 
+          video={video} 
+        />
+      ))}
+    </div>
+  ), [allVideos, navigateToVideo]);
+
+  const loadingIndicator = useMemo(() => (
+    hasMore && (
+      <div 
+        ref={loadMoreRef} 
+        className="flex justify-center items-center py-8"
+      >
+        {videosLoading ? (
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent"></div>
+        ) : (
+          <p className="text-muted-foreground">Scroll for more videos</p>
+        )}
+      </div>
+    )
+  ), [hasMore, videosLoading, loadMoreRef]);
+
+  const noVideosMessage = useMemo(() => (
+    allVideos.length === 0 && !videosLoading && (
+      <div className="text-center py-10">
+        <h3 className="text-foreground text-lg">No videos found</h3>
+        <p className="text-muted-foreground mt-2">This channel hasn't uploaded any videos yet.</p>
+      </div>
+    )
+  ), [allVideos.length, videosLoading]);
+
+  const backToTopButton = useMemo(() => (
+    allVideos.length > videosPerPage && (
+      <div className="flex justify-center mt-6">
+        <Button 
+          variant="outline" 
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
+          Back to Top
+        </Button>
+      </div>
+    )
+  ), [allVideos.length]);
 
   return (
     <div className="container mx-auto py-8">
@@ -29,71 +160,23 @@ export default function Video() {
       
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-foreground text-xl font-semibold">{t('channel.videos')}</h2>
-        {isOwnChannel && (
-          <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Upload Video
-          </Button>
-        )}
+        {uploadButton}
       </div>
       
       {/* Video Categories */}
-      <div className="flex overflow-x-auto mb-4 space-x-2">
-        <Button className="bg-accent hover:bg-accent/90 text-accent-foreground whitespace-nowrap">All Videos</Button>
-        <Button variant="ghost" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground whitespace-nowrap">Recent Broadcasts</Button>
-        <Button variant="ghost" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground whitespace-nowrap">Clips</Button>
-        <Button variant="ghost" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground whitespace-nowrap">Highlights</Button>
-        <Button variant="ghost" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground whitespace-nowrap">Collections</Button>
-        {isOwnChannel && (
-          <Button variant="ghost" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground whitespace-nowrap">
-            <PlusCircle className="h-4 w-4 mr-2" />
-            New Collection
-          </Button>
-        )}
-      </div>
+      {categoryButtons}
       
       {/* Videos Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {channelData.videos.map(video => (
-          <div key={video.id} className="bg-card rounded-md overflow-hidden transition-transform hover:translate-y-[-4px] cursor-pointer relative">
-            {isOwnChannel && (
-              <div className="absolute top-2 right-2 z-10 flex space-x-2">
-                <Button className="h-8 w-8 p-0 bg-secondary/70 hover:bg-secondary/90 rounded-full">
-                  <Edit3 className="h-4 w-4 text-secondary-foreground" />
-                </Button>
-              </div>
-            )}
-            <div className="relative">
-              <img 
-                src={video.thumbnailUrl} 
-                alt={video.title}
-                className="w-full aspect-video object-cover"
-              />
-              <div className="absolute bottom-2 right-2 bg-secondary/80 text-secondary-foreground px-1 rounded text-xs py-0.5">
-                {video.duration}
-              </div>
-              {video.type === 'clip' && (
-                <div className="absolute top-2 left-2 bg-accent text-accent-foreground px-1 rounded text-xs py-0.5">
-                  CLIP
-                </div>
-              )}
-            </div>
-            <div className="p-3">
-              <h3 className="text-foreground font-medium text-sm line-clamp-2">{video.title}</h3>
-              <div className="text-muted-foreground text-xs mt-1">
-                {video.views.toLocaleString()} {t('channel.views')} • {video.createdAt}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      {videoGrid}
       
-      {channelData.videos.length === 0 && (
-        <div className="text-center py-10">
-          <h3 className="text-foreground text-lg">No videos found</h3>
-          <p className="text-muted-foreground mt-2">This channel hasn't uploaded any videos yet.</p>
-        </div>
-      )}
+      {/* No videos message */}
+      {noVideosMessage}
+      
+      {/* Loading indicator */}
+      {loadingIndicator}
+      
+      {/* Back to top button */}
+      {backToTopButton}
     </div>
   );
 }

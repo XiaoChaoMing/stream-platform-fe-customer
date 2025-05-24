@@ -20,3 +20,12 @@ export interface IUpdateProfileRequest {
   banner_url?: string;
   social_links?: Record<string, string>;
 }
+
+// New interface for file upload form data - now without username and email
+export interface IUpdateProfileWithFilesRequest {
+  name?: string;
+  description?: string;
+  social_links?: string; // Needs to be stringified for FormData
+  avatarFile?: File;
+  bannerFile?: File;
+}

@@ -31,7 +31,7 @@ const SideBar = () => {
   return (
     <div
       className={cn(
-        "flex max-h-full flex-col gap-2 bg-[var(--primary-foreground)] px-4 py-1 transition-all duration-300",
+        "sm:flex max-h-full flex-col gap-2 bg-[var(--primary-foreground)] px-4 py-1 transition-all duration-300 hidden ",
         isCollapsed ? "" : "min-w-[320px]"
       )}
     >
@@ -68,8 +68,8 @@ const SideBar = () => {
               username={channel.username}
               imageUrl={channel.avatar || ""}
               detail={channel.profile?.description?.substring(0, 20) || ''}
-              isLive={channel.is_live || false}
-              viewCount={Math.floor(Math.random() * 15000)}
+              isLive={channel.livestream?.status === 'live' || false}
+              viewCount={channel.livestream?.view_count || 0}
               isCollapsed={isCollapsed}
             />
           ))
